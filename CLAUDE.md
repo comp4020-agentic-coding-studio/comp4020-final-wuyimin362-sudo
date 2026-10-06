@@ -52,7 +52,10 @@ rules, the README changes first, then the rule.
   and is never edited. The other checks in `spec/` drive the app through its
   own forms, using `spec/helpers.ts`.
 - Accepting a game stays one guarded update, so two people can't both take a
-  game.
+  game. Confirming or disputing a match is the same: only the opponent, only
+  while it's waiting.
+- The club rating is replayed from confirmed matches every time it's shown.
+  Never store a rating that could drift from the record.
 - Schema changes go through `pnpm db:generate` and a committed migration. An
   applied migration is never edited. If drizzle-kit asks whether a column was
   renamed, split the change into an add and a drop.
