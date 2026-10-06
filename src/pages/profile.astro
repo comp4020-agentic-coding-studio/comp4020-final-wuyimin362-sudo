@@ -1,0 +1,140 @@
+---
+// A member's own profile, to fill in: photo, kit, grip, style, where they play
+// and their Ratings Central number. Guests make an account first.
+import Avatar from "../components/Avatar.astro";
+import Base from "../layouts/Base.astro";
+import { currentPlayer, isGuest } from "../lib/players";
+import {
+  grips,
+  KIT_MAX,
+  profileOf,
+  type ProfileProblem,
+  RATINGS_CENTRAL_ACT_LIST,
+  saveProfile,
+  styles,
+} from "../lib/profiles";
+import { states, venueLabel, venues } from "../lib/venues";
+
+const player = currentPlayer(Astro.cookies);
+if (!player) return Astro.redirect("/login", 303);
+if (isGuest(player)) return Astro.redirect("/signup", 303);
+
+const problems: Record<ProfileProblem | "photo", string> = {
+  kit: `Keep each piece of kit to ${KIT_MAX} characters.`,
+  grip: "Pick a grip from the list.",
+  style: "Pick a style from the list.",
+  venues: "Pick venues from the list.",
+  ratingsCentral: "A Ratings Central number is digits only.",
+  photo: "That photo wasn't saved: use a JPEG, PNG or WebP of 1 MB or less.",
+};
+const notices: Record<string, string> = { saved: "Saved.", photo: "Photo updated." };
+const pick = (messages: Record<string, string>, key: string | null) =>
+  key && Object.hasOwn(messages, key) ? messages[key] : undefined;
+
+let problem = pick(problems, Astro.url.searchParams.get("problem"));
+if (Astro.request.method === "POST") {
+  const result = saveProfile(player.id, await Astro.request.formData());
+  if (!result) return Astro.redirect("/profile?done=saved", 303);
+  problem = problems[result];
+  Astro.response.status = 400;
+}
+const done = pick(notices, Astro.url.searchParams.get("done"));
+const profile = profileOf(player.id)!;
+---
+
+<Base title="Your profile · Find a game">
+  <main class="wrap narrow">
+    <div class="profile-head">
+      <Avatar id={profile.id} name={profile.name} photoVersion={profile.photoVersion} />
+      <div>
+        <h1>Your profile</h1>
+        <p class="muted">
+          Only signed-in members can see it. <a href={`/players/${profile.id}`}>See it as they do</a>
+        </p>
+      </div>
+    </div>
+
+    {done && <p class="notice" role="status">{done}</p>}
+    {problem && <p class="notice notice-problem" role="alert">{problem}</p>}
+
+    <section class="panel" aria-labelledby="photo-heading">
+      <h2 id="photo-heading">Photo</h2>
+      <form method="post" action="/profile/photo" enctype="multipart/form-data" class="stack-form">
+        <label class="field">
+          <span>Choose a photo</span>
+          <input type="file" name="photo" accept="image/jpeg,image/png,image/webp" required aria-describedby="photo-hint" />
+          <small id="photo-hint">JPEG, PNG or WebP, up to 1 MB.</small>
+        </label>
+        <button class="button" type="submit">Upload photo</button>
+      </form>
+    </section>
+
+    <section class="panel" aria-labelledby="game-heading">
+      <h2 id="game-heading">Your game</h2>
+      <form method="post" action="/profile" class="stack-form">
+        <label class="field">
+          <span>Blade</span>
+          <input name="blade" maxlength={KIT_MAX} value={profile.blade ?? ""} placeholder="Viscaria" />
+        </label>
+        <div class="two-up">
+          <label class="field">
+            <span>Forehand rubber</span>
+            <input name="forehand" maxlength={KIT_MAX} value={profile.forehand ?? ""} placeholder="Tenergy 05" />
+          </label>
+          <label class="field">
+            <span>Backhand rubber</span>
+            <input name="backhand" maxlength={KIT_MAX} value={profile.backhand ?? ""} placeholder="Dignics 09C" />
+          </label>
+        </div>
+        <div class="two-up">
+          <label class="field">
+            <span>Grip</span>
+            <select name="grip">
+              <option value="">Not saying</option>
+              {Object.entries(grips).map(([value, label]) => (
+                <option value={value} selected={profile.grip === value}>{label}</option>
+              ))}
+            </select>
+          </label>
+          <label class="field">
+            <span>Style</span>
+            <select name="style">
+              <option value="">Not saying</option>
+              {Object.entries(styles).map(([value, label]) => (
+                <option value={value} selected={profile.style === value}>{label}</option>
+              ))}
+            </select>
+          </label>
+        </div>
+        <fieldset class="field checks">
+          <legend>Where you usually play</legend>
+          {states.map((state) =>
+            venues
+              .filter((v) => v.state === state)
+              .map((v) => (
+                <label class="check">
+                  <input type="checkbox" name="venues" value={v.id} checked={profile.venues.includes(v.id)} />
+                  {venueLabel(v.id)}
+                </label>
+              )),
+          )}
+        </fieldset>
+        <label class="field">
+          <span>Ratings Central number</span>
+          <input
+            name="ratingsCentral"
+            inputmode="numeric"
+            pattern="[0-9]{1,9}"
+            value={profile.ratingsCentralId ?? ""}
+            aria-describedby="rc-hint"
+          />
+          <small id="rc-hint">
+            Your official rating stays with Ratings Central. Find your number on <a href={RATINGS_CENTRAL_ACT_LIST}>its
+            list of Table Tennis ACT members</a>.
+          </small>
+        </label>
+        <button class="button" type="submit">Save</button>
+      </form>
+    </section>
+  </main>
+</Base>

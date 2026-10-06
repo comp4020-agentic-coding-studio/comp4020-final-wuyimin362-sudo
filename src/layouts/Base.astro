@@ -38,12 +38,16 @@ const player = currentPlayer(Astro.cookies);
             player ? (
               <>
                 <span class="who">
-                  {player.name}
-                  {isGuest(player) && (
+                  {isGuest(player) ? (
                     <>
+                      {player.name}
                       {" "}
                       <span class="badge">Guest</span>
                     </>
+                  ) : (
+                    <a href="/profile" aria-current={path === "/profile" ? "page" : undefined}>
+                      {player.name}
+                    </a>
                   )}
                 </span>
                 {isGuest(player) && <a href="/signup">Make an account</a>}

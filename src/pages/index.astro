@@ -2,6 +2,7 @@
 // The board: every game still to come, and the forms to join, post a game and
 // take one up. It all works without JavaScript: each action is a form POST that
 // comes back here with a 303 and a line saying what happened.
+import PlayerName from "../components/PlayerName.astro";
 import Base from "../layouts/Base.astro";
 import { HORIZON_DAYS, kinds, NOTE_MAX, upcomingGames } from "../lib/games";
 import { currentPlayer, isGuest, NAME_MAX } from "../lib/players";
@@ -151,13 +152,7 @@ const problem = pick(problems, Astro.url.searchParams.get("problem"));
                 </p>
                 <p class="game-where">{venueLabel(g.venue)}</p>
                 <p class="game-who">
-                  {kinds[g.kind]} · posted by {g.hostName}
-                  {g.hostUsername === null && (
-                    <>
-                      {" "}
-                      <span class="badge">Guest</span>
-                    </>
-                  )}
+                  {kinds[g.kind]} · posted by <PlayerName id={g.hostId} name={g.hostName} username={g.hostUsername} />
                 </p>
                 {g.note && <p class="game-note">{g.note}</p>}
                 {player && player.id !== g.hostId && (
@@ -203,21 +198,13 @@ const problem = pick(problems, Astro.url.searchParams.get("problem"));
                 </p>
                 <p class="game-where">{venueLabel(g.venue)}</p>
                 <p class="game-who">
-                  <strong>{g.hostName}</strong>
-                  {g.hostUsername === null && (
-                    <>
-                      {" "}
-                      <span class="badge">Guest</span>
-                    </>
-                  )}
+                  <strong>
+                    <PlayerName id={g.hostId} name={g.hostName} username={g.hostUsername} />
+                  </strong>
                   {" vs "}
-                  <strong>{g.guestName}</strong>
-                  {g.guestUsername === null && (
-                    <>
-                      {" "}
-                      <span class="badge">Guest</span>
-                    </>
-                  )}
+                  <strong>
+                    <PlayerName id={g.guestId ?? ""} name={g.guestName ?? ""} username={g.guestUsername} />
+                  </strong>
                   {` · ${kinds[g.kind]}`}
                 </p>
                 {g.note && <p class="game-note">{g.note}</p>}

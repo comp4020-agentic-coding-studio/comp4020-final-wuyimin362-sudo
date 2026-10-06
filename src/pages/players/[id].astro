@@ -1,0 +1,114 @@
+---
+// A member's profile, as other members see it. Anyone else gets a 403 and a
+// way to sign in, and nothing about the member: the profile isn't even looked
+// up for them.
+import Avatar from "../../components/Avatar.astro";
+import Base from "../../layouts/Base.astro";
+import { kinds, upcomingGames } from "../../lib/games";
+import { currentPlayer, isGuest } from "../../lib/players";
+import { grips, profileOf, ratingsCentralUrl, styles } from "../../lib/profiles";
+import { formatWhen } from "../../lib/time";
+import { venueLabel } from "../../lib/venues";
+
+const viewer = currentPlayer(Astro.cookies);
+const allowed = viewer !== undefined && !isGuest(viewer);
+const profile = allowed ? profileOf(String(Astro.params.id)) : undefined;
+if (!allowed) Astro.response.status = 403;
+else if (!profile) Astro.response.status = 404;
+
+const games = profile ? upcomingGames().filter((g) => g.hostId === profile.id || g.guestId === profile.id) : [];
+const howTheyPlay = profile
+  ? [profile.grip && grips[profile.grip], profile.style && styles[profile.style]].filter(Boolean).join(" · ")
+  : "";
+const notGiven = "Not given";
+---
+
+<Base title={profile ? `${profile.name} · Find a game` : "Members only · Find a game"}>
+  <main class="wrap narrow">
+    {
+      !allowed ? (
+        <section class="panel">
+          <h1>Members only</h1>
+          <p class="muted">
+            Profiles are for signed-in members. <a href="/login">Log in</a>, or <a href="/signup">make an account</a>
+            {viewer ? " to keep your games as a member." : "."}
+          </p>
+        </section>
+      ) : !profile ? (
+        <section class="panel">
+          <h1>No such member</h1>
+          <p class="muted">
+            Guests don't have profiles. <a href="/">Back to the board</a>
+          </p>
+        </section>
+      ) : (
+        <>
+          <div class="profile-head">
+            <Avatar id={profile.id} name={profile.name} photoVersion={profile.photoVersion} />
+            <div>
+              <h1>{profile.name}</h1>
+              <p class="muted">
+                @{profile.username}
+                {howTheyPlay && ` · ${howTheyPlay}`}
+              </p>
+              {viewer?.id === profile.id && (
+                <p>
+                  <a href="/profile">Edit your profile</a>
+                </p>
+              )}
+            </div>
+          </div>
+
+          <section class="panel" aria-labelledby="kit-heading">
+            <h2 id="kit-heading">Kit</h2>
+            <dl class="kit">
+              <dt>Blade</dt>
+              <dd>{profile.blade ?? notGiven}</dd>
+              <dt>Forehand</dt>
+              <dd>{profile.forehand ?? notGiven}</dd>
+              <dt>Backhand</dt>
+              <dd>{profile.backhand ?? notGiven}</dd>
+              <dt>Official rating</dt>
+              <dd>
+                {profile.ratingsCentralId ? (
+                  <a href={ratingsCentralUrl(profile.ratingsCentralId)}>On Ratings Central</a>
+                ) : (
+                  notGiven
+                )}
+              </dd>
+            </dl>
+          </section>
+
+          <section class="panel" aria-labelledby="venues-heading">
+            <h2 id="venues-heading">Usually plays at</h2>
+            {profile.venues.length === 0 ? (
+              <p class="muted">{notGiven}</p>
+            ) : (
+              <ul class="chips">
+                {profile.venues.map((v) => (
+                  <li>{venueLabel(v)}</li>
+                ))}
+              </ul>
+            )}
+          </section>
+
+          <section class="panel" aria-labelledby="games-heading">
+            <h2 id="games-heading">Coming up</h2>
+            {games.length === 0 ? (
+              <p class="muted">No games coming up.</p>
+            ) : (
+              <ul class="plain-list">
+                {games.map((g) => (
+                  <li>
+                    <strong>{formatWhen(g.startsAt)}</strong>, {venueLabel(g.venue)} · {kinds[g.kind]}
+                    {g.status === "open" ? ", open" : ` with ${g.hostId === profile.id ? g.guestName : g.hostName}`}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        </>
+      )
+    }
+  </main>
+</Base>

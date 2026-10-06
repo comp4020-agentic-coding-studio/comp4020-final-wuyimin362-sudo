@@ -405,6 +405,120 @@ select:focus-visible {
   text-align: center;
 }
 
+/* --- profiles ---------------------------------------------------------- */
+.profile-head {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  margin: 0 0 28px;
+}
+
+.profile-head h1 {
+  margin: 0 0 4px;
+  font-size: clamp(1.8rem, 1.4rem + 2vw, 2.4rem);
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.profile-head p {
+  margin: 0;
+}
+
+.avatar {
+  flex: none;
+  width: var(--size, 96px);
+  height: var(--size, 96px);
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+  object-fit: cover;
+}
+
+.avatar-initials {
+  display: inline-grid;
+  place-items: center;
+  background: var(--blue-wash);
+  color: var(--blue);
+  font-family: var(--font-display);
+  font-size: calc(var(--size, 96px) * 0.38);
+  font-weight: 600;
+}
+
+.kit {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 10px 20px;
+  margin: 0;
+}
+
+.kit dt {
+  color: var(--text-secondary);
+  font-size: 0.94rem;
+}
+
+.kit dd {
+  margin: 0;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chips li {
+  padding: 6px 14px;
+  border-radius: var(--radius-pill);
+  background: var(--bg);
+  font-size: 0.94rem;
+}
+
+.plain-list {
+  margin: 0;
+  padding-left: 1.1em;
+}
+
+.plain-list li + li {
+  margin-top: 8px;
+}
+
+.two-up {
+  display: grid;
+  gap: 16px;
+}
+
+.checks {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  gap: 10px;
+}
+
+.checks legend {
+  margin-bottom: 8px;
+  padding: 0;
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.check {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.check input {
+  width: 20px;
+  height: 20px;
+  min-height: 0;
+  margin: 0;
+  accent-color: var(--blue);
+}
+
 /* --- the README, at /readme/ ------------------------------------------- */
 .prose {
   max-width: 692px;
@@ -515,6 +629,10 @@ select:focus-visible {
 
   .games {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .two-up {
+    grid-template-columns: 1fr 1fr;
   }
 }
 

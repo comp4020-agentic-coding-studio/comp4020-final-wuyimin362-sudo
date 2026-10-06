@@ -1,0 +1,24 @@
+---
+// A player's name as the board shows it: a member's links to their profile
+// (which only members can open), and a guest's carries a Guest marker, with a
+// real space before it so a screen reader doesn't run the two together.
+interface Props {
+  id: string;
+  name: string;
+  username: string | null;
+}
+
+const { id, name, username } = Astro.props;
+---
+
+{
+  username !== null ? (
+    <a href={`/players/${id}`}>{name}</a>
+  ) : (
+    <>
+      {name}
+      {" "}
+      <span class="badge">Guest</span>
+    </>
+  )
+}

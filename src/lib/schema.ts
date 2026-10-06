@@ -1,14 +1,21 @@
 import { sql } from "drizzle-orm";
-import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { blob, integer, primaryKey, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 // Someone the app knows. A guest is just a name; a member also has a username
-// and a password hash (src/lib/passwords.ts) to sign in with from anywhere. The
-// id is public enough to sit in a URL.
+// and a password hash (src/lib/passwords.ts) to sign in with from anywhere, and
+// can describe their game (src/lib/profiles.ts). The id is public enough to sit
+// in a URL.
 export const players = sqliteTable("players", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
   username: text("username").unique(),
   passwordHash: text("password_hash"),
+  blade: text("blade"),
+  forehand: text("forehand_rubber"),
+  backhand: text("backhand_rubber"),
+  grip: text("grip", { enum: ["shakehand", "penhold"] }),
+  style: text("style", { enum: ["attacker", "allround", "defender", "blocker", "pips"] }),
+  ratingsCentralId: text("ratings_central_id"),
   createdAt: text("created_at")
     .notNull()
     .default(sql`(datetime('now'))`),
@@ -27,6 +34,31 @@ export const sessions = sqliteTable("sessions", {
     .notNull()
     .default(sql`(datetime('now'))`),
 });
+
+// A member's photo, kept in the database with everything else so the volume
+// stays the one place state lives: JPEG, PNG or WebP, at most 1 MB.
+export const avatars = sqliteTable("avatars", {
+  playerId: text("player_id")
+    .primaryKey()
+    .references(() => players.id, { onDelete: "cascade" }),
+  type: text("type").notNull(),
+  data: blob("data", { mode: "buffer" }).notNull(),
+  // ISO 8601, UTC; also busts the browser's cache when the photo changes
+  updatedAt: text("updated_at").notNull(),
+});
+
+// The venues a member usually plays at. "Players near you" comes from these,
+// so nobody's location is ever needed.
+export const homeVenues = sqliteTable(
+  "home_venues",
+  {
+    playerId: text("player_id")
+      .notNull()
+      .references(() => players.id, { onDelete: "cascade" }),
+    venue: text("venue").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.playerId, t.venue] })],
+);
 
 // A game one member offers and another takes up. It stays open until someone
 // accepts it, and until then its host can withdraw it.

@@ -34,6 +34,7 @@ export function upcomingGames() {
       hostName: host.name,
       // null for a guest
       hostUsername: host.username,
+      guestId: guest.id,
       guestName: guest.name,
       guestUsername: guest.username,
     })

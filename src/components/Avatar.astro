@@ -1,0 +1,30 @@
+---
+// A member's photo, or their initials where there's none. Photos are served
+// to members only (src/pages/avatars/[id].ts).
+import { initials } from "../lib/profiles";
+
+interface Props {
+  id: string;
+  name: string;
+  photoVersion: string | null;
+  size?: number;
+}
+
+const { id, name, photoVersion, size = 96 } = Astro.props;
+---
+
+{
+  photoVersion ? (
+    <img
+      class="avatar"
+      src={`/avatars/${id}?v=${encodeURIComponent(photoVersion)}`}
+      alt={`Photo of ${name}`}
+      width={size}
+      height={size}
+    />
+  ) : (
+    <span class="avatar avatar-initials" style={`--size: ${size}px`} aria-hidden="true">
+      {initials(name)}
+    </span>
+  )
+}
