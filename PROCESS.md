@@ -112,6 +112,9 @@ keep.
 
 ## Next
 
-Profiles come next, then confirmed scores and the rating, reviews and the
-hexagon, invitations with their messages (which fits crit 9's real-time
-requirement: a new message should appear within a second), and official events.
+Profiles came first
+([`5b62c2a...a61dc5d`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-wuyimin362-sudo/compare/5b62c2a...a61dc5d)):
+a photo is stored only if its own bytes say it's an image, and nothing on a
+profile reaches a non-member. Then come confirmed scores and the rating, reviews
+and the hexagon, invitations with their messages (crit 9 wants a new message on
+screen within a second), and official events.

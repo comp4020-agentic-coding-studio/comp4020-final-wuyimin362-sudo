@@ -19,7 +19,9 @@ rules, the README changes first, then the rule.
   players.
 - Present itself as Table Tennis ACT's, or take entries for official
   competitions. Official events link to Table Tennis ACT's own pages.
-- Show profiles or match history to anyone who isn't a signed-in member.
+- Show profiles, photos or match history to anyone who isn't a signed-in member.
+- Store an upload that its own first bytes don't show to be a JPEG, PNG or
+  WebP, or one over 1 MB, or read an upload's body before checking its size.
 
 ## Accounts and sessions
 
