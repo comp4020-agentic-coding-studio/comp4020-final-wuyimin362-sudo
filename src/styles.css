@@ -170,6 +170,28 @@ h3 {
   margin-left: 0;
 }
 
+.badge-alert {
+  background: var(--blue);
+  color: #fff;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: auto;
+  padding-top: 14px;
+}
+
+.game .actions form {
+  margin: 0;
+  padding: 0;
+}
+
+.games.single {
+  grid-template-columns: 1fr;
+}
+
 /* --- page frame -------------------------------------------------------- */
 .wrap {
   max-width: var(--content);

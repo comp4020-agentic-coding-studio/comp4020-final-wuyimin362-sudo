@@ -33,6 +33,16 @@ export function addDays(wallClock: string, days: number): string {
   return new Date(asUtc(wallClock).getTime() + days * 86_400_000).toISOString().slice(0, 16);
 }
 
+// "Mon 5 Oct", from a YYYY-MM-DD date.
+export function formatDay(date: string): string {
+  return new Intl.DateTimeFormat("en-AU", {
+    timeZone: "UTC",
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+  }).format(new Date(`${date}T00:00:00Z`));
+}
+
 // "Thu 8 Oct, 7:00 pm", read straight off the wall clock.
 export function formatWhen(wallClock: string): string {
   const at = asUtc(wallClock);

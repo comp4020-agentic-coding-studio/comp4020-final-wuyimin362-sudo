@@ -2,6 +2,7 @@
 // Every page's frame: the landmarks, the app's name, who's signed in, and the
 // note that this is not the club's own site.
 import "../styles.css";
+import { waitingFor } from "../lib/matches";
 import { currentPlayer, isGuest } from "../lib/players";
 
 interface Props {
@@ -11,6 +12,8 @@ interface Props {
 const { title } = Astro.props;
 const path = Astro.url.pathname;
 const player = currentPlayer(Astro.cookies);
+// reports waiting for a member to confirm, flagged in the header
+const waiting = player && !isGuest(player) ? waitingFor(player.id).length : 0;
 ---
 
 <!doctype html>
@@ -52,7 +55,19 @@ const player = currentPlayer(Astro.cookies);
                     </a>
                   )}
                 </span>
-                {isGuest(player) && <a href="/signup">Make an account</a>}
+                {isGuest(player) ? (
+                  <a href="/signup">Make an account</a>
+                ) : (
+                  <a href="/matches" aria-current={path === "/matches" ? "page" : undefined}>
+                    Matches
+                    {waiting > 0 && (
+                      <>
+                        {" "}
+                        <span class="badge badge-alert">{waiting} to confirm</span>
+                      </>
+                    )}
+                  </a>
+                )}
                 <form method="post" action="/logout">
                   <button class="link-button" type="submit">
                     Log out

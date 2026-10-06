@@ -5,9 +5,10 @@
 import Avatar from "../../components/Avatar.astro";
 import Base from "../../layouts/Base.astro";
 import { kinds, upcomingGames } from "../../lib/games";
+import { ratings, recordOf } from "../../lib/matches";
 import { currentPlayer, isGuest } from "../../lib/players";
 import { grips, profileOf, ratingsCentralUrl, styles } from "../../lib/profiles";
-import { formatWhen } from "../../lib/time";
+import { formatDay, formatWhen } from "../../lib/time";
 import { venueLabel } from "../../lib/venues";
 
 const viewer = currentPlayer(Astro.cookies);
@@ -21,6 +22,8 @@ const howTheyPlay = profile
   ? [profile.grip && grips[profile.grip], profile.style && styles[profile.style]].filter(Boolean).join(" · ")
   : "";
 const notGiven = "Not given";
+const standing = profile ? ratings().get(profile.id) : undefined;
+const record = profile ? recordOf(profile.id, 5) : [];
 ---
 
 <Base title={profile ? `${profile.name} · Find a game` : "Members only · Find a game"}>
@@ -58,6 +61,30 @@ const notGiven = "Not given";
               )}
             </div>
           </div>
+
+          <section class="panel" aria-labelledby="record-heading">
+            <h2 id="record-heading">Record</h2>
+            <p>
+              {standing ? (
+                <>
+                  <strong>Club rating {Math.round(standing.rating)}</strong>, unofficial, from {standing.played}{" "}
+                  {standing.played === 1 ? "confirmed match" : "confirmed matches"} ({standing.won} won)
+                </>
+              ) : (
+                "Club rating: none yet. It starts with a confirmed match."
+              )}
+            </p>
+            {record.length > 0 && (
+              <ul class="plain-list">
+                {record.map((m) => (
+                  <li>
+                    {formatDay(m.playedOn)}: {m.games > m.against ? "won" : "lost"} {m.games}–{m.against} against{" "}
+                    <a href={`/players/${m.opponentId}`}>{m.opponentName}</a>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
 
           <section class="panel" aria-labelledby="kit-heading">
             <h2 id="kit-heading">Kit</h2>

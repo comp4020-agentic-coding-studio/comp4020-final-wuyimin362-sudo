@@ -60,6 +60,32 @@ export const homeVenues = sqliteTable(
   (t) => [primaryKey({ columns: [t.playerId, t.venue] })],
 );
 
+// A match two members played, as one of them reported it. It counts, on the
+// club rating and in anyone's record, only once the other confirms it.
+export const matches = sqliteTable("matches", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  reporterId: text("reporter_id")
+    .notNull()
+    .references(() => players.id, { onDelete: "cascade" }),
+  opponentId: text("opponent_id")
+    .notNull()
+    .references(() => players.id, { onDelete: "cascade" }),
+  // YYYY-MM-DD, the Canberra date
+  playedOn: text("played_on").notNull(),
+  venue: text("venue").notNull(),
+  // games each side won: a 3–1 win for the reporter is 3 and 1
+  reporterGames: integer("reporter_games").notNull(),
+  opponentGames: integer("opponent_games").notNull(),
+  status: text("status", { enum: ["reported", "confirmed", "disputed"] })
+    .notNull()
+    .default("reported"),
+  createdAt: text("created_at")
+    .notNull()
+    .default(sql`(datetime('now'))`),
+  // ISO 8601, UTC; the rating replays confirmed matches in this order
+  confirmedAt: text("confirmed_at"),
+});
+
 // A game one member offers and another takes up. It stays open until someone
 // accepts it, and until then its host can withdraw it.
 export const games = sqliteTable("games", {
