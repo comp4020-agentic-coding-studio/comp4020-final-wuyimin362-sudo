@@ -541,6 +541,40 @@ select:focus-visible {
   accent-color: var(--blue);
 }
 
+/* --- the hexagon ------------------------------------------------------- */
+.hexagon-wrap {
+  display: grid;
+  gap: 20px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.hexagon {
+  width: 100%;
+  max-width: 280px;
+  height: auto;
+  justify-self: center;
+}
+
+.hex-ring,
+.hex-axis {
+  fill: none;
+  stroke: var(--line);
+}
+
+.hex-shape {
+  fill: rgb(0 102 204 / 0.18);
+  stroke: var(--blue);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+
+.hex-label {
+  fill: var(--text-secondary);
+  font-family: var(--font-text);
+  font-size: 12px;
+}
+
 /* --- venues and players ------------------------------------------------ */
 .hero-small {
   padding-bottom: 28px;
@@ -701,6 +735,10 @@ select:focus-visible {
 
   .filter-form {
     grid-template-columns: 1fr 1fr auto;
+  }
+
+  .hexagon-wrap {
+    grid-template-columns: auto 1fr;
   }
 }
 

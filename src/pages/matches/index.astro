@@ -13,6 +13,7 @@ import {
   waitingOn,
 } from "../../lib/matches";
 import { currentPlayer, isGuest } from "../../lib/players";
+import { reviewedBy } from "../../lib/reviews";
 import { formatDay } from "../../lib/time";
 import { states, venueLabel, venues } from "../../lib/venues";
 
@@ -32,6 +33,7 @@ const notices: Record<string, string> = {
   recorded: "Recorded. It counts once your opponent confirms it.",
   confirmed: "Confirmed. It's on both your records now.",
   disputed: "Disputed. It won't count.",
+  reviewed: "Thanks. Your review is in.",
 };
 const pick = (messages: Record<string, string>, key: string | null) =>
   key && Object.hasOwn(messages, key) ? messages[key] : undefined;
@@ -58,6 +60,7 @@ const done = pick(notices, Astro.url.searchParams.get("done"));
 const toAnswer = waitingFor(player.id);
 const ownReports = waitingOn(player.id);
 const record = recordOf(player.id);
+const reviewed = reviewedBy(player.id);
 const gameCounts = ["0", "1", "2", "3", "4"];
 ---
 
@@ -189,6 +192,12 @@ const gameCounts = ["0", "1", "2", "3", "4"];
               <li>
                 {formatDay(m.playedOn)}: {m.games > m.against ? "won" : "lost"} {m.games}–{m.against} against{" "}
                 <a href={`/players/${m.opponentId}`}>{m.opponentName}</a>
+                {!reviewed.has(m.id) && (
+                  <>
+                    {" · "}
+                    <a href={`/matches/${m.id}/review`}>Review their game</a>
+                  </>
+                )}
               </li>
             ))}
           </ul>

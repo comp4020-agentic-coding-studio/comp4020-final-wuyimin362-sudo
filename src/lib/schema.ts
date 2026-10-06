@@ -86,6 +86,35 @@ export const matches = sqliteTable("matches", {
   confirmedAt: text("confirmed_at"),
 });
 
+// One opponent's view of a member's game, from a confirmed match they played:
+// six scores from 1 to 5 and an optional line. The key allows one review per
+// match per reviewer, however many times a form is sent.
+export const reviews = sqliteTable(
+  "reviews",
+  {
+    matchId: integer("match_id")
+      .notNull()
+      .references(() => matches.id, { onDelete: "cascade" }),
+    reviewerId: text("reviewer_id")
+      .notNull()
+      .references(() => players.id, { onDelete: "cascade" }),
+    revieweeId: text("reviewee_id")
+      .notNull()
+      .references(() => players.id, { onDelete: "cascade" }),
+    serve: integer("serve").notNull(),
+    receive: integer("receive").notNull(),
+    forehand: integer("forehand").notNull(),
+    backhand: integer("backhand").notNull(),
+    footwork: integer("footwork").notNull(),
+    tactics: integer("tactics").notNull(),
+    comment: text("comment").notNull().default(""),
+    createdAt: text("created_at")
+      .notNull()
+      .default(sql`(datetime('now'))`),
+  },
+  (t) => [primaryKey({ columns: [t.matchId, t.reviewerId] })],
+);
+
 // A game one member offers and another takes up. It stays open until someone
 // accepts it, and until then its host can withdraw it.
 export const games = sqliteTable("games", {

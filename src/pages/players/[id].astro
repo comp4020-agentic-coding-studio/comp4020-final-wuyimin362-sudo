@@ -3,11 +3,13 @@
 // way to sign in, and nothing about the member: the profile isn't even looked
 // up for them.
 import Avatar from "../../components/Avatar.astro";
+import Hexagon from "../../components/Hexagon.astro";
 import Base from "../../layouts/Base.astro";
 import { kinds, upcomingGames } from "../../lib/games";
 import { ratings, recordOf } from "../../lib/matches";
 import { currentPlayer, isGuest } from "../../lib/players";
 import { grips, profileOf, ratingsCentralUrl, styles } from "../../lib/profiles";
+import { type Aspect, aspects, HEXAGON_AFTER, standingOf } from "../../lib/reviews";
 import { formatDay, formatWhen } from "../../lib/time";
 import { venueLabel } from "../../lib/venues";
 
@@ -24,6 +26,8 @@ const howTheyPlay = profile
 const notGiven = "Not given";
 const standing = profile ? ratings().get(profile.id) : undefined;
 const record = profile ? recordOf(profile.id, 5) : [];
+const opinions = profile ? standingOf(profile.id) : undefined;
+const aspectKeys = Object.keys(aspects) as Aspect[];
 ---
 
 <Base title={profile ? `${profile.name} · Find a game` : "Members only · Find a game"}>
@@ -83,6 +87,41 @@ const record = profile ? recordOf(profile.id, 5) : [];
                   </li>
                 ))}
               </ul>
+            )}
+          </section>
+
+          <section class="panel" aria-labelledby="style-heading">
+            <h2 id="style-heading">Their game, as opponents see it</h2>
+            {opinions?.shown ? (
+              <>
+                <div class="hexagon-wrap">
+                  <Hexagon name={profile.name} averages={opinions.averages} />
+                  <dl class="kit">
+                    {aspectKeys.map((a) => (
+                      <>
+                        <dt>{aspects[a]}</dt>
+                        <dd>{opinions.averages[a].toFixed(1)}</dd>
+                      </>
+                    ))}
+                  </dl>
+                </div>
+                <p class="muted">
+                  From {opinions.reviews} reviews by {opinions.reviewers} opponents, each scoring 1 to 5.
+                </p>
+                {opinions.comments.length > 0 && (
+                  <ul class="plain-list">
+                    {opinions.comments.map((c) => (
+                      <li>
+                        “{c.comment}” {c.reviewerName}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </>
+            ) : (
+              <p class="muted">
+                Shows once {HEXAGON_AFTER} different opponents have reviewed: {opinions?.reviewers ?? 0} so far.
+              </p>
             )}
           </section>
 

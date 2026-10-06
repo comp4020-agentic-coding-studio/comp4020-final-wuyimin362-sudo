@@ -1,0 +1,54 @@
+---
+// The six aspects of a member's game as a hexagon, drawn on the server so it
+// needs no JavaScript. Its title and description carry the numbers for screen
+// readers, and the profile lists them as text beside it as well.
+import { type Aspect, aspects } from "../lib/reviews";
+
+interface Props {
+  name: string;
+  averages: Record<Aspect, number>;
+}
+
+const { name, averages } = Astro.props;
+const keys = Object.keys(aspects) as Aspect[];
+const size = 280;
+const centre = size / 2;
+const radius = 92;
+const at = (i: number, r: number) => {
+  const angle = -Math.PI / 2 + (i * 2 * Math.PI) / keys.length;
+  return [centre + r * Math.cos(angle), centre + r * Math.sin(angle)];
+};
+const points = (r: (i: number) => number) =>
+  keys.map((_, i) => at(i, r(i)).map((n) => n.toFixed(1)).join(",")).join(" ");
+const described = keys.map((k) => `${aspects[k]} ${averages[k].toFixed(1)}`).join(", ");
+---
+
+<svg
+  class="hexagon"
+  role="img"
+  viewBox={`0 0 ${size} ${size}`}
+  width={size}
+  height={size}
+  aria-labelledby="hexagon-title hexagon-desc"
+>
+  <title id="hexagon-title">How opponents rate {name}'s game</title>
+  <desc id="hexagon-desc">{described}, each out of 5.</desc>
+  {[1, 2, 3, 4, 5].map((level) => <polygon class="hex-ring" points={points(() => (radius * level) / 5)} />)}
+  {
+    keys.map((_, i) => {
+      const [x, y] = at(i, radius);
+      return <line class="hex-axis" x1={centre} y1={centre} x2={x} y2={y} />;
+    })
+  }
+  <polygon class="hex-shape" points={points((i) => (radius * averages[keys[i]]) / 5)} />
+  {
+    keys.map((k, i) => {
+      const [x, y] = at(i, radius + 24);
+      return (
+        <text class="hex-label" x={x} y={y} text-anchor="middle" dominant-baseline="middle">
+          {aspects[k]}
+        </text>
+      );
+    })
+  }
+</svg>

@@ -1,0 +1,94 @@
+---
+// Reviewing the opponent from a confirmed match: six scores and an optional
+// line. Anyone who wasn't in the match gets a 403; someone who has already
+// reviewed it gets told so, and sending the form again changes nothing.
+import Base from "../../../layouts/Base.astro";
+import { currentPlayer, isGuest } from "../../../lib/players";
+import { aspects, COMMENT_MAX, reviewable, type ReviewProblem, saveReview } from "../../../lib/reviews";
+
+const player = currentPlayer(Astro.cookies);
+const matchId = Number(Astro.params.id);
+const target = player && !isGuest(player) ? reviewable(matchId, player) : undefined;
+
+const problems: Record<ReviewProblem, string> = {
+  score: "Give every aspect a score from 1 to 5.",
+  comment: `Keep the comment to ${COMMENT_MAX} characters.`,
+  gone: "You've already reviewed this match.",
+};
+
+let problem: string | undefined;
+if (!target) {
+  Astro.response.status = 403;
+} else if (Astro.request.method === "POST") {
+  const result = saveReview(matchId, player!, await Astro.request.formData());
+  if (!result) return Astro.redirect("/matches?done=reviewed", 303);
+  problem = problems[result];
+  Astro.response.status = result === "gone" ? 409 : 400;
+}
+const done = target?.done;
+---
+
+<Base title="Review · Find a game">
+  <main class="wrap narrow">
+    {
+      !target ? (
+        <section class="panel">
+          <h1>Not yours to review</h1>
+          <p class="muted">
+            Only the two players in a confirmed match can review each other. <a href="/matches">Your matches</a>
+          </p>
+        </section>
+      ) : (
+        <section class="panel" aria-labelledby="review-heading">
+          <div class="panel-head">
+            <h1 id="review-heading">Review {target.revieweeName}</h1>
+            <p class="muted">
+              Describe how they play, the way you'd want to be described. Table Tennis ACT's{" "}
+              <a href="https://www.tabletennisact.org.au/information-for-new-players-and-non-members/table-tennis-etiquette">
+                etiquette
+              </a>{" "}
+              asks players to respect their opponents. Scores show on their profile only once three different
+              opponents have reviewed them.
+            </p>
+          </div>
+          {problem && (
+            <p class="notice notice-problem" role="alert">
+              {problem}
+            </p>
+          )}
+          {done ? (
+            <p class="muted">You've reviewed this match. <a href="/matches">Back to your matches</a></p>
+          ) : (
+            <form method="post" action={`/matches/${matchId}/review`} class="stack-form">
+              <fieldset class="field checks">
+                <legend>From 1, a weakness, to 5, a strength</legend>
+                <div class="two-up">
+                  {Object.entries(aspects).map(([aspect, label]) => (
+                    <label class="field">
+                      <span>{label}</span>
+                      <select name={aspect} required>
+                        <option value="">Choose</option>
+                        {["1", "2", "3", "4", "5"].map((n) => (
+                          <option value={n}>{n}</option>
+                        ))}
+                      </select>
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+              <label class="field">
+                <span>
+                  A line about their game <small>(optional)</small>
+                </span>
+                <input name="comment" maxlength={COMMENT_MAX} placeholder="Heavy forehand loop; push long to their backhand." />
+              </label>
+              <button class="button" type="submit">
+                Send review
+              </button>
+            </form>
+          )}
+        </section>
+      )
+    }
+  </main>
+</Base>
