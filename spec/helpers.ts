@@ -51,6 +51,61 @@ export function upload(form: HTMLFormElement, field: string, file: Blob, filenam
   });
 }
 
+// Listens to a server-sent event stream the way an open page does, and counts
+// the "change" events that arrive. `nextChange` resolves with how many
+// milliseconds the next one took, or undefined if none came in time.
+export function listen(path: string, who: Visitor) {
+  const controller = new AbortController();
+  let changes = 0;
+  let wake: (() => void) | undefined;
+  const status = fetch(new URL(path, baseUrl), {
+    headers: { accept: "text/event-stream", ...cookieHeader(who) },
+    signal: controller.signal,
+  }).then((res) => {
+    if (res.status === 200 && res.body) {
+      void (async () => {
+        const reader = res.body!.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        try {
+          for (;;) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            for (let end = buffer.indexOf("\n\n"); end >= 0; end = buffer.indexOf("\n\n")) {
+              if (/^event: change$/m.test(buffer.slice(0, end))) {
+                changes += 1;
+                wake?.();
+              }
+              buffer = buffer.slice(end + 2);
+            }
+          }
+        } catch {
+          // closed by close()
+        }
+      })();
+    }
+    return res.status;
+  });
+  return {
+    status,
+    nextChange(withinMs: number): Promise<number | undefined> {
+      const seen = changes;
+      const started = Date.now();
+      return new Promise((resolve) => {
+        const timer = setTimeout(() => resolve(undefined), withinMs);
+        wake = () => {
+          if (changes > seen) {
+            clearTimeout(timer);
+            resolve(Date.now() - started);
+          }
+        };
+      });
+    },
+    close: () => controller.abort(),
+  };
+}
+
 // A GET that reports whatever the server says, for pages a visitor may be
 // refused.
 export function fetchAs(path: string, who: Visitor) {
