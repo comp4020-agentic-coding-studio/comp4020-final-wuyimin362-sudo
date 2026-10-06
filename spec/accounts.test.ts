@@ -38,6 +38,11 @@ async function hosts(who: Visitor, note: string): Promise<boolean> {
 
 const fresh = () => crypto.randomUUID().slice(0, 8);
 
+// Whether some element in the game says exactly "Guest". Matching the card's
+// whole text instead would trip on paragraphs, whose text runs together.
+const markedGuest = (game: Element | undefined) =>
+  [...(game?.querySelectorAll("*") ?? [])].some((el) => el.textContent?.trim().toLowerCase() === "guest");
+
 describe.skipIf(live)("accounts and guests", () => {
   it("signs a member up, and knows them again after they log out and back in elsewhere", async () => {
     const id = fresh();
@@ -96,12 +101,12 @@ describe.skipIf(live)("accounts and guests", () => {
     const visitor = await join(name);
     const note = `spec visitor game ${id}`;
     await postGame(visitor, note);
-    expect(gameWith(await visit("/", stranger), note)?.textContent).toMatch(/\bguest\b/i);
+    expect(markedGuest(gameWith(await visit("/", stranger), note))).toBe(true);
 
     // the guest makes an account from the same browser
     const [username, password] = [`spec_${id}`, `no longer a guest ${id}`];
     expect((await signUp(username, name, password, visitor)).status).toBe(303);
-    expect(gameWith(await visit("/", stranger), note)?.textContent).not.toMatch(/\bguest\b/i);
+    expect(markedGuest(gameWith(await visit("/", stranger), note))).toBe(false);
 
     // and the game is still theirs when they log in from somewhere else
     const back = await logIn(username, password);
