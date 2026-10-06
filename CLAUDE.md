@@ -24,7 +24,10 @@ rules, the README changes first, then the rule.
 - Show a direct invitation on the public board before it's accepted, or let
   anyone but the invitee accept or decline it.
 - Present itself as Table Tennis ACT's, or take entries for official
-  competitions. Official events link to Table Tennis ACT's own pages.
+  competitions. Official events link to Table Tennis ACT's own pages, and
+  `src/lib/events.ts` cites where its list came from.
+- Show who's going to an event, or looking for a partner, to anyone but
+  signed-in members.
 - Show profiles, photos or match history to anyone who isn't a signed-in member.
 - Store an upload that its own first bytes don't show to be a JPEG, PNG or
   WebP, or one over 1 MB, or read an upload's body before checking its size.

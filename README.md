@@ -25,11 +25,16 @@ The look borrows Apple's web style (system type, white cards, one blue for anyth
 - Yancey Strickler, [The Dark Forest Theory of the Internet](https://www.ystrickler.com/the-dark-forest-theory-of-the-internet/) (2019): people leave big public platforms for smaller spaces where they know each other. A club board is one of those, and should stay that way.
 - Table Tennis ACT's pages on [Ratings Central](https://www.tabletennisact.org.au/about/ratingscentral), [etiquette](https://www.tabletennisact.org.au/information-for-new-players-and-non-members/table-tennis-etiquette) and [clubs and venues](https://www.tabletennisact.org.au/venues-and-times) told me what the club already does, and so what to leave alone.
 
-## Coming next, and the lines it won't cross
+## What's here, and the lines it won't cross
 
-The first version cut my original idea down to the board. Profiles are back: a member can show their photo, blade and rubbers, grip, style and the venues they usually play at, and link their Ratings Central rating, and only other signed-in members can see any of it. Finding is back too: anyone can browse the venues and sort them by distance, worked out in their own browser so their location never reaches the server, and members can find players who share their usual venues or play the style they want to practise against. So are results: a member records a match they played, and it counts toward an unofficial club rating and both players' records only once the opponent confirms it, while profiles link to Ratings Central for the official number. And opponents' views: after a confirmed match each player can score the other's serve, receive, forehand, backhand, footwork and tactics from 1 to 5, and the averages appear as a hexagon only once three different opponents have reviewed, so no single opinion stands for anyone. The club's etiquette asks players to respect their opponents, and this is how the app holds to it. Direct invitations are in too: a member can invite another from their profile, the invitation stays off the board until they accept, and every game with two players has a short thread only those two can read, rather than a general chat. One thing is still coming, within this limit:
+The first version cut my original idea down to the board. The rest of it is back now, each part with a limit:
 
-- **Official events**, each linking to Table Tennis ACT's own entry page, with a way to say you're going or looking for a doubles partner. The app won't take entries.
+- **Profiles**: a photo, blade and rubbers, grip, style, usual venues, and a link to your Ratings Central rating. Only signed-in members can see them.
+- **Finding**: anyone can browse the venues and sort them by distance, worked out in their own browser so their location never reaches the server. Members find players who share their venues, or who play the style they want to practise against.
+- **Results**: a match counts toward the unofficial club rating and both players' records only once the opponent confirms it. Ratings Central keeps the official number.
+- **Opponents' views**: after a confirmed match each player can score the other's serve, receive, forehand, backhand, footwork and tactics from 1 to 5. The hexagon appears only once three different opponents have reviewed, so no single opinion stands for anyone. The club's etiquette asks players to respect their opponents, and this is how the app holds to it.
+- **Invitations**: invite a member from their profile. It stays off the board until they accept, and every game with two players has a short thread only those two can read.
+- **Events**: Table Tennis ACT's events, each linking to its own entry page. Members can say they're going or looking for a doubles partner; the app takes no entries.
 
 Still not building: email collection, location tracking, a general chat, or entries to official competitions.
 
@@ -44,6 +49,7 @@ Checked by `spec/` on every push:
 - a score reaches the club rating and anyone's record only once the opponent confirms it; a disputed score never counts; nobody can confirm their own report or a match they weren't in; a score no match could end on is turned away (`spec/matches.test.ts`)
 - only the opponent in a confirmed match can review a player, once per match, with scores from 1 to 5, and the hexagon appears only after three different opponents have reviewed (`spec/reviews.test.ts`)
 - a direct invitation stays off the board until the invitee, and only the invitee, accepts it; a declined one never appears; a game's messages are readable and writable by its two players and nobody else (`spec/invites.test.ts`)
+- every event links to Table Tennis ACT's own page and the events page asks for nothing an entry would need; who's going, or looking for a partner, shows to members only (`spec/events.test.ts`)
 - this README is published at `/readme/` (`spec/invariants.test.ts`)
 
 Enforced in the code, with checks still to write: two people can't take the same game, and games can only be posted at listed venues, up to eight weeks ahead.

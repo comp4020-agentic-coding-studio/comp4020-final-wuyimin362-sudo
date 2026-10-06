@@ -121,5 +121,8 @@ then confirmed scores and the rating
 replayed from the record rather than stored, then reviews and the hexagon
 ([`d90ad6a...f023ebf`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-wuyimin362-sudo/compare/d90ad6a...f023ebf)),
 then invitations and their messages
-([`c187611...c4f8c4d`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-wuyimin362-sudo/compare/c187611...c4f8c4d)).
-Next: official events, then crit 9's real-time board and messages.
+([`c187611...c4f8c4d`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-wuyimin362-sudo/compare/c187611...c4f8c4d)),
+then official events
+([`9e956d4...8aab19b`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-wuyimin362-sudo/compare/9e956d4...8aab19b)),
+which link out and take no entries. Next is crit 9: the board and messages
+updating live, and trimming the README back towards 600 words.
