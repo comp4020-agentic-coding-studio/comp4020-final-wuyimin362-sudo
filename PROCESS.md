@@ -119,6 +119,7 @@ then venues and players
 then confirmed scores and the rating
 ([`8038b02...3389437`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-wuyimin362-sudo/compare/8038b02...3389437)),
 replayed from the record rather than stored, then reviews and the hexagon
-([`d90ad6a...f023ebf`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-wuyimin362-sudo/compare/d90ad6a...f023ebf)).
-Next: invitations with messages (crit 9 wants a new message on screen within a
-second), and official events.
+([`d90ad6a...f023ebf`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-wuyimin362-sudo/compare/d90ad6a...f023ebf)),
+then invitations and their messages
+([`c187611...c4f8c4d`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-wuyimin362-sudo/compare/c187611...c4f8c4d)).
+Next: official events, then crit 9's real-time board and messages.

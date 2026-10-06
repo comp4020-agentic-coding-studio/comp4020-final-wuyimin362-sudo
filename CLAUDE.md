@@ -19,8 +19,10 @@ rules, the README changes first, then the rule.
 - Let anyone review a player they haven't played in a confirmed match, or more
   than once per match, or show a member's hexagon or review comments before
   three different opponents have reviewed them.
-- Add a general chat. Messages live only inside an invitation between two
-  players.
+- Add a general chat. Messages live only inside a game, and only its two
+  players can read or write them.
+- Show a direct invitation on the public board before it's accepted, or let
+  anyone but the invitee accept or decline it.
 - Present itself as Table Tennis ACT's, or take entries for official
   competitions. Official events link to Table Tennis ACT's own pages.
 - Show profiles, photos or match history to anyone who isn't a signed-in member.
