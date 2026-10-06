@@ -1,0 +1,99 @@
+import { JSDOM } from "jsdom";
+import { expect, inject } from "vitest";
+
+// What the checks in spec/ share: a browser reduced to the cookie it holds, and
+// forms submitted the way a browser submits them.
+export const baseUrl = inject("baseUrl");
+
+// These checks write to the app they run against, so they stand down against
+// the live deploy, where they'd leave test data on the real board. CI runs them
+// against a throwaway container; locally, against your own server.
+export const live = new URL(baseUrl).hostname.endsWith(".fly.dev");
+
+// A visitor is whatever cookie their browser holds; a stranger holds none.
+export type Visitor = { cookie: string };
+export const stranger: Visitor = { cookie: "" };
+
+const cookieHeader = (who: Visitor): Record<string, string> =>
+  who.cookie ? { cookie: who.cookie } : {};
+
+export async function visit(path: string, who: Visitor): Promise<Document> {
+  const res = await fetch(new URL(path, baseUrl), { headers: cookieHeader(who) });
+  expect(res.status, `GET ${path}`).toBe(200);
+  return new JSDOM(await res.text()).window.document;
+}
+
+// Submits a form as a browser would: urlencoded, from this origin, and without
+// following the redirect, so the check sees what the server answered.
+export function submit(form: HTMLFormElement, fields: Record<string, string>, who: Visitor) {
+  return fetch(new URL(form.getAttribute("action") ?? "", baseUrl), {
+    method: "POST",
+    redirect: "manual",
+    headers: {
+      "content-type": "application/x-www-form-urlencoded",
+      origin: new URL(baseUrl).origin,
+      ...cookieHeader(who),
+    },
+    body: new URLSearchParams(fields),
+  });
+}
+
+// The cookies a response sets, as the next request would send them. A cookie
+// being deleted isn't one.
+export function cookieFrom(res: Response): string {
+  return res.headers
+    .getSetCookie()
+    .map((c) => c.split(";")[0])
+    .filter((c) => !c.endsWith("=") && !c.endsWith("=deleted"))
+    .join("; ");
+}
+
+export function formWith(doc: Document, field: string): HTMLFormElement {
+  const form = [...doc.querySelectorAll("form")].find((f) => f.querySelector(`[name="${field}"]`));
+  if (!form) throw new Error(`no form on the page has a "${field}" field`);
+  return form;
+}
+
+export function formTo(doc: Document, action: string): HTMLFormElement {
+  const form = [...doc.querySelectorAll("form")].find((f) => f.getAttribute("action")?.endsWith(action));
+  if (!form) throw new Error(`no form on the page posts to "${action}"`);
+  return form;
+}
+
+// The first real option of every select, as a member picking quickly would.
+export function quickPicks(form: HTMLFormElement): Record<string, string> {
+  const picks: Record<string, string> = {};
+  for (const select of form.querySelectorAll("select")) {
+    const option = [...select.options].find((o) => o.value !== "");
+    if (option) picks[select.name] = option.value;
+  }
+  return picks;
+}
+
+// Each game on the board is its own list item (or article), so a game's
+// details and the button that acts on it sit together.
+export function gameWith(doc: Document, text: string): Element | undefined {
+  return [...doc.querySelectorAll("li, article")].find((el) => el.textContent?.includes(text));
+}
+
+// Three days out at 7 pm: in the future whatever zone this runs in.
+export function threeDaysOut(): string {
+  const d = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T19:00`;
+}
+
+// Joins as a guest: a name, and nothing else.
+export async function join(name: string): Promise<Visitor> {
+  const res = await submit(formWith(await visit("/", stranger), "name"), { name }, stranger);
+  expect(res.status).toBe(303);
+  const cookie = cookieFrom(res);
+  expect(cookie, "joining set no cookie, so the app can't know them again").not.toBe("");
+  return { cookie };
+}
+
+export async function postGame(who: Visitor, note: string): Promise<void> {
+  const offer = formWith(await visit("/", who), "startsAt");
+  const res = await submit(offer, { ...quickPicks(offer), startsAt: threeDaysOut(), note }, who);
+  expect(res.status).toBe(303);
+}
