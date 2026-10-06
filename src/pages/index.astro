@@ -4,7 +4,7 @@
 // comes back here with a 303 and a line saying what happened.
 import Base from "../layouts/Base.astro";
 import { HORIZON_DAYS, kinds, NOTE_MAX, upcomingGames } from "../lib/games";
-import { currentPlayer, NAME_MAX } from "../lib/players";
+import { currentPlayer, isGuest, NAME_MAX } from "../lib/players";
 import { addDays, canberraNow, formatWhen } from "../lib/time";
 import { states, venueLabel, venues } from "../lib/venues";
 
@@ -15,7 +15,10 @@ const on = games.filter((g) => g.status === "accepted");
 const now = canberraNow();
 
 const notices: Record<string, string> = {
-  joined: "You're on the board. Post a game, or take one below.",
+  joined: "You're on the board as a guest. Post a game, or take one below.",
+  signedup: "Your account is ready. You can sign in from any device now.",
+  loggedin: "Welcome back.",
+  loggedout: "Logged out.",
   posted: "Posted. Everyone on the board can see it now.",
   accepted: "You're on. The host can see it's you.",
   withdrawn: "Withdrawn.",
@@ -52,7 +55,16 @@ const problem = pick(problems, Astro.url.searchParams.get("problem"));
           <div class="panel-head">
             <h2 id="post-heading">Post a game</h2>
             <p class="muted">
-              You're playing as <strong>{player.name}</strong>.
+              You're playing as <strong>{player.name}</strong>
+              {
+                isGuest(player) ? (
+                  <>
+                    , a guest. <a href="/signup">Make an account</a> to keep your games and sign in from any device.
+                  </>
+                ) : (
+                  "."
+                )
+              }
             </p>
           </div>
           <form method="post" action="/games" class="post-form">
@@ -104,7 +116,7 @@ const problem = pick(problems, Astro.url.searchParams.get("problem"));
       ) : (
         <section class="panel" aria-labelledby="join-heading">
           <div class="panel-head">
-            <h2 id="join-heading">Join the board</h2>
+            <h2 id="join-heading">Try it as a guest</h2>
             <p class="muted">
               Just the name people know you by at the club. No password: this browser remembers you.
             </p>
@@ -115,9 +127,12 @@ const problem = pick(problems, Astro.url.searchParams.get("problem"));
               <input name="name" required maxlength={NAME_MAX} autocomplete="nickname" />
             </label>
             <button class="button" type="submit">
-              Join
+              Join as a guest
             </button>
           </form>
+          <p class="muted after-form">
+            Playing here regularly? <a href="/signup">Sign up</a> to sign in from any device, or <a href="/login">log in</a>.
+          </p>
         </section>
       )
     }
@@ -137,6 +152,12 @@ const problem = pick(problems, Astro.url.searchParams.get("problem"));
                 <p class="game-where">{venueLabel(g.venue)}</p>
                 <p class="game-who">
                   {kinds[g.kind]} · posted by {g.hostName}
+                  {g.hostUsername === null && (
+                    <>
+                      {" "}
+                      <span class="badge">Guest</span>
+                    </>
+                  )}
                 </p>
                 {g.note && <p class="game-note">{g.note}</p>}
                 {player && player.id !== g.hostId && (
@@ -182,7 +203,22 @@ const problem = pick(problems, Astro.url.searchParams.get("problem"));
                 </p>
                 <p class="game-where">{venueLabel(g.venue)}</p>
                 <p class="game-who">
-                  <strong>{g.hostName}</strong> vs <strong>{g.guestName}</strong> · {kinds[g.kind]}
+                  <strong>{g.hostName}</strong>
+                  {g.hostUsername === null && (
+                    <>
+                      {" "}
+                      <span class="badge">Guest</span>
+                    </>
+                  )}
+                  {" vs "}
+                  <strong>{g.guestName}</strong>
+                  {g.guestUsername === null && (
+                    <>
+                      {" "}
+                      <span class="badge">Guest</span>
+                    </>
+                  )}
+                  {` · ${kinds[g.kind]}`}
                 </p>
                 {g.note && <p class="game-note">{g.note}</p>}
               </li>

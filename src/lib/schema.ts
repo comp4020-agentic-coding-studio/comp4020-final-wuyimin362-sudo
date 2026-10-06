@@ -1,13 +1,28 @@
 import { sql } from "drizzle-orm";
 import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
-// Someone the app knows: the name they gave, and the token their browser keeps
-// in a cookie. The id is public (it can sit in a URL); the token is what proves
-// a request is theirs, so it never leaves the cookie.
+// Someone the app knows. A guest is just a name; a member also has a username
+// and a password hash (src/lib/passwords.ts) to sign in with from anywhere. The
+// id is public enough to sit in a URL.
 export const players = sqliteTable("players", {
   id: text("id").primaryKey(),
-  token: text("token").notNull().unique(),
   name: text("name").notNull(),
+  username: text("username").unique(),
+  passwordHash: text("password_hash"),
+  createdAt: text("created_at")
+    .notNull()
+    .default(sql`(datetime('now'))`),
+});
+
+// One signed-in browser. Its cookie carries a random token, and only the
+// token's SHA-256 is kept here, so a copy of the database can't sign anyone in.
+export const sessions = sqliteTable("sessions", {
+  id: text("id").primaryKey(),
+  playerId: text("player_id")
+    .notNull()
+    .references(() => players.id, { onDelete: "cascade" }),
+  // ISO 8601, UTC
+  expiresAt: text("expires_at").notNull(),
   createdAt: text("created_at")
     .notNull()
     .default(sql`(datetime('now'))`),

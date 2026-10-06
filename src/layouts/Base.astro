@@ -1,7 +1,8 @@
 ---
-// Every page's frame: the landmarks, the app's name, and the note that this
-// is not the club's own site.
+// Every page's frame: the landmarks, the app's name, who's signed in, and the
+// note that this is not the club's own site.
 import "../styles.css";
+import { currentPlayer, isGuest } from "../lib/players";
 
 interface Props {
   title: string;
@@ -9,6 +10,7 @@ interface Props {
 
 const { title } = Astro.props;
 const path = Astro.url.pathname;
+const player = currentPlayer(Astro.cookies);
 ---
 
 <!doctype html>
@@ -31,6 +33,38 @@ const path = Astro.url.pathname;
           <a href="/" aria-current={path === "/" ? "page" : undefined}>Board</a>
           <a href="/readme/" aria-current={path.startsWith("/readme") ? "page" : undefined}>About</a>
         </nav>
+        <div class="account">
+          {
+            player ? (
+              <>
+                <span class="who">
+                  {player.name}
+                  {isGuest(player) && (
+                    <>
+                      {" "}
+                      <span class="badge">Guest</span>
+                    </>
+                  )}
+                </span>
+                {isGuest(player) && <a href="/signup">Make an account</a>}
+                <form method="post" action="/logout">
+                  <button class="link-button" type="submit">
+                    Log out
+                  </button>
+                </form>
+              </>
+            ) : (
+              <>
+                <a href="/login" aria-current={path === "/login" ? "page" : undefined}>
+                  Log in
+                </a>
+                <a href="/signup" aria-current={path === "/signup" ? "page" : undefined}>
+                  Sign up
+                </a>
+              </>
+            )
+          }
+        </div>
       </div>
     </header>
     <slot />

@@ -1,0 +1,61 @@
+---
+// Signing in as a member, from any browser.
+import Base from "../layouts/Base.astro";
+import { currentPlayer, isGuest, logIn, type LogInProblem } from "../lib/players";
+
+const player = currentPlayer(Astro.cookies);
+if (player && !isGuest(player)) return Astro.redirect("/", 303);
+
+const problems: Record<LogInProblem, { message: string; status: number }> = {
+  wrong: { message: "That username and password don't match.", status: 401 },
+  locked: { message: "Too many wrong passwords. Wait a minute, then try again.", status: 429 },
+};
+
+let problem: string | undefined;
+let username = "";
+if (Astro.request.method === "POST") {
+  const form = await Astro.request.formData();
+  username = String(form.get("username") ?? "");
+  const result = await logIn({ username, password: String(form.get("password") ?? "") }, Astro.cookies);
+  if (!result) return Astro.redirect("/?done=loggedin", 303);
+  problem = problems[result].message;
+  Astro.response.status = problems[result].status;
+}
+---
+
+<Base title="Log in · Find a game">
+  <main class="wrap narrow">
+    <section class="panel" aria-labelledby="login-heading">
+      <div class="panel-head">
+        <h1 id="login-heading">Log in</h1>
+        {
+          player && (
+            <p class="muted">
+              You're here as a guest. Logging in to an account leaves that guest behind.
+            </p>
+          )
+        }
+      </div>
+      {problem && <p class="notice notice-problem" role="alert">{problem}</p>}
+      <form method="post" action="/login" class="stack-form">
+        <label class="field">
+          <span>Username</span>
+          <input
+            name="username"
+            required
+            autocomplete="username"
+            autocapitalize="none"
+            spellcheck="false"
+            value={username}
+          />
+        </label>
+        <label class="field">
+          <span>Password</span>
+          <input type="password" name="password" required autocomplete="current-password" />
+        </label>
+        <button class="button" type="submit">Log in</button>
+      </form>
+      <p class="muted after-form">New here? <a href="/signup">Sign up</a>, or try the board as a guest from the <a href="/">home page</a>.</p>
+    </section>
+  </main>
+</Base>

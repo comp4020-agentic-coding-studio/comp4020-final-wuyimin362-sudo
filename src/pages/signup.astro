@@ -1,0 +1,89 @@
+---
+// Making an account: a username to sign in with, the name people know you by,
+// and a password. From a guest's browser it keeps the guest's games.
+import Base from "../layouts/Base.astro";
+import {
+  currentPlayer,
+  isGuest,
+  NAME_MAX,
+  PASSWORD_MIN,
+  signUp,
+  type SignUpProblem,
+  USERNAME_PATTERN,
+} from "../lib/players";
+
+const player = currentPlayer(Astro.cookies);
+if (player && !isGuest(player)) return Astro.redirect("/", 303);
+
+const problems: Record<SignUpProblem, string> = {
+  username: "Pick a username of 3 to 20 letters, numbers or underscores.",
+  taken: "That username is taken. Try another.",
+  name: `Give your name, up to ${NAME_MAX} characters.`,
+  password: `Use a password of at least ${PASSWORD_MIN} characters.`,
+};
+
+let problem: string | undefined;
+let username = "";
+let name = player?.name ?? "";
+if (Astro.request.method === "POST") {
+  const form = await Astro.request.formData();
+  username = String(form.get("username") ?? "");
+  name = String(form.get("name") ?? "");
+  const result = await signUp({ username, name, password: String(form.get("password") ?? "") }, Astro.cookies);
+  if (!result) return Astro.redirect("/?done=signedup", 303);
+  problem = problems[result];
+  Astro.response.status = 400;
+}
+---
+
+<Base title="Sign up · Find a game">
+  <main class="wrap narrow">
+    <section class="panel" aria-labelledby="signup-heading">
+      <div class="panel-head">
+        <h1 id="signup-heading">{player ? "Make your account" : "Sign up"}</h1>
+        <p class="muted">
+          {
+            player
+              ? "Your games stay yours, and you can sign in from any device."
+              : "A username to sign in with, the name people know you by, and a password. No email address."
+          }
+        </p>
+      </div>
+      {problem && <p class="notice notice-problem" role="alert">{problem}</p>}
+      <form method="post" action="/signup" class="stack-form">
+        <label class="field">
+          <span>Username</span>
+          <input
+            name="username"
+            required
+            pattern={USERNAME_PATTERN}
+            autocomplete="username"
+            autocapitalize="none"
+            spellcheck="false"
+            value={username}
+            aria-describedby="username-hint"
+          />
+          <small id="username-hint">3 to 20 letters, numbers or underscores.</small>
+        </label>
+        <label class="field">
+          <span>Your name</span>
+          <input name="name" required maxlength={NAME_MAX} autocomplete="nickname" value={name} />
+        </label>
+        <label class="field">
+          <span>Password</span>
+          <input
+            type="password"
+            name="password"
+            required
+            minlength={PASSWORD_MIN}
+            autocomplete="new-password"
+            aria-describedby="password-hint"
+          />
+          <small id="password-hint">At least {PASSWORD_MIN} characters. There's no reset by email, so keep it somewhere safe.</small>
+        </label>
+        <button class="button" type="submit">{player ? "Make my account" : "Sign up"}</button>
+      </form>
+      <p class="muted after-form">Already have an account? <a href="/login">Log in</a></p>
+    </section>
+  </main>
+</Base>

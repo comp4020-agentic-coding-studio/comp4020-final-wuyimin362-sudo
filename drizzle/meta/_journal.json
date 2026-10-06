@@ -8,6 +8,20 @@
       "when": 1791283199732,
       "tag": "0000_players_and_games",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1791288422592,
+      "tag": "0001_accounts_and_sessions",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1791288434073,
+      "tag": "0002_drop_player_tokens",
+      "breakpoints": true
     }
   ]
 }

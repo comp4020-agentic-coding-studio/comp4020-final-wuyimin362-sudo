@@ -115,6 +115,61 @@ h3 {
   box-shadow: inset 0 -2px 0 var(--text);
 }
 
+.nav-inner {
+  flex-wrap: wrap;
+}
+
+.account {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  align-items: center;
+  font-size: 0.82rem;
+}
+
+.account a,
+.link-button {
+  color: var(--blue);
+  text-decoration: none;
+}
+
+.account a:hover,
+.link-button:hover {
+  text-decoration: underline;
+}
+
+.who {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  font-weight: 600;
+}
+
+.link-button {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+}
+
+.badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 8px;
+  border-radius: var(--radius-pill);
+  background: #ebebef;
+  color: #515154;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  vertical-align: 1px;
+}
+
+.who .badge {
+  margin-left: 0;
+}
+
 /* --- page frame -------------------------------------------------------- */
 .wrap {
   max-width: var(--content);
@@ -169,6 +224,31 @@ h3 {
   margin-bottom: 20px;
 }
 
+.panel h1 {
+  margin: 0 0 6px;
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.narrow {
+  max-width: 560px;
+  padding-top: 48px;
+}
+
+.stack-form {
+  display: grid;
+  gap: 16px;
+}
+
+.stack-form .button {
+  justify-self: start;
+}
+
+.after-form {
+  margin-top: 20px;
+}
+
 .panel h2,
 .board h2 {
   margin: 0 0 6px;
@@ -202,6 +282,11 @@ h3 {
 .field small {
   font-size: inherit;
   font-weight: 400;
+}
+
+.field > small {
+  color: var(--text-secondary);
+  font-size: 0.82rem;
 }
 
 input,
@@ -436,5 +521,15 @@ select:focus-visible {
 @media (max-width: 733px) {
   form .button {
     width: 100%;
+  }
+
+  /* who's signed in gets a row of its own under the name and links */
+  .account {
+    flex-basis: 100%;
+    padding-bottom: 10px;
+  }
+
+  .global-nav nav a {
+    padding: 14px 0 10px;
   }
 }

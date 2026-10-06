@@ -32,7 +32,10 @@ export function upcomingGames() {
       status: games.status,
       hostId: host.id,
       hostName: host.name,
+      // null for a guest
+      hostUsername: host.username,
       guestName: guest.name,
+      guestUsername: guest.username,
     })
     .from(games)
     .innerJoin(host, eq(games.hostId, host.id))
