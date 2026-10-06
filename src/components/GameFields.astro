@@ -1,0 +1,41 @@
+---
+// The fields that describe a game: when, where, match or practice, and a
+// note. Shared by posting a game on the board and inviting someone directly.
+import { HORIZON_DAYS, kinds, NOTE_MAX } from "../lib/games";
+import { addDays, canberraNow } from "../lib/time";
+import { states, venueLabel, venues } from "../lib/venues";
+
+const now = canberraNow();
+---
+
+<label class="field">
+  <span>When</span>
+  <input type="datetime-local" name="startsAt" required min={now} max={addDays(now, HORIZON_DAYS)} step="900" />
+</label>
+<label class="field">
+  <span>Where</span>
+  <select name="venue" required>
+    <option value="">Choose a venue</option>
+    {
+      states.map((state) => (
+        <optgroup label={state}>
+          {venues
+            .filter((v) => v.state === state)
+            .map((v) => (
+              <option value={v.id}>{venueLabel(v.id)}</option>
+            ))}
+        </optgroup>
+      ))
+    }
+  </select>
+</label>
+<label class="field">
+  <span>What</span>
+  <select name="kind">
+    {Object.entries(kinds).map(([value, label]) => <option value={value}>{label}</option>)}
+  </select>
+</label>
+<label class="field">
+  <span>Note <small>(optional)</small></span>
+  <input name="note" maxlength={NOTE_MAX} placeholder="Best of five? Happy to just rally." />
+</label>

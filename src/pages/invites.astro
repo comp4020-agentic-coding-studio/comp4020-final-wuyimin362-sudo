@@ -1,0 +1,114 @@
+---
+// Direct invitations: the ones waiting for you to answer, and the ones you've
+// sent. They stay off the public board until they're accepted.
+import PlayerName from "../components/PlayerName.astro";
+import Base from "../layouts/Base.astro";
+import { invitationsFor, invitationsFrom, kinds } from "../lib/games";
+import { currentPlayer, isGuest } from "../lib/players";
+import { formatWhen } from "../lib/time";
+import { venueLabel } from "../lib/venues";
+
+const player = currentPlayer(Astro.cookies);
+if (!player) return Astro.redirect("/login", 303);
+if (isGuest(player)) return Astro.redirect("/signup", 303);
+
+const notices: Record<string, string> = {
+  sent: "Invitation sent. It's waiting for them to answer.",
+  declined: "Declined.",
+};
+const problems: Record<string, string> = { gone: "That invitation isn't waiting for an answer any more." };
+const pick = (messages: Record<string, string>, key: string | null) =>
+  key && Object.hasOwn(messages, key) ? messages[key] : undefined;
+const done = pick(notices, Astro.url.searchParams.get("done"));
+const problem = pick(problems, Astro.url.searchParams.get("problem"));
+
+const forYou = invitationsFor(player.id);
+const sent = invitationsFrom(player.id);
+const standing = (status: string) =>
+  status === "accepted" ? "Accepted" : status === "declined" ? "Declined" : "Waiting for an answer";
+---
+
+<Base title="Invites · Find a game">
+  <main class="wrap narrow">
+    <section class="hero hero-small">
+      <h1>Invites.</h1>
+      <p class="lede">Games offered to you directly, and the ones you've offered. Invite someone from their profile.</p>
+    </section>
+
+    {done && <p class="notice" role="status">{done}</p>}
+    {problem && <p class="notice notice-problem" role="alert">{problem}</p>}
+
+    <section class="board" aria-labelledby="for-you-heading">
+      <h2 id="for-you-heading">For you</h2>
+      {
+        forYou.length === 0 ? (
+          <p class="empty">No invitations waiting.</p>
+        ) : (
+          <ul class="games single">
+            {forYou.map((g) => (
+              <li class="game">
+                <p class="game-when">
+                  <time datetime={g.startsAt}>{formatWhen(g.startsAt)}</time>
+                </p>
+                <p class="game-where">{venueLabel(g.venue)}</p>
+                <p class="game-who">
+                  {kinds[g.kind]} · from <PlayerName id={g.hostId} name={g.hostName} username={g.hostUsername} />
+                </p>
+                {g.note && <p class="game-note">{g.note}</p>}
+                <p class="game-who">
+                  <a href={`/games/${g.id}`}>Messages</a>
+                </p>
+                <div class="actions">
+                  <form method="post" action={`/games/${g.id}/accept`}>
+                    <button class="button" type="submit" aria-label={`Accept ${g.hostName}'s invitation`}>
+                      Accept
+                    </button>
+                  </form>
+                  <form method="post" action={`/games/${g.id}/decline`}>
+                    <button class="button button-quiet" type="submit" aria-label={`Decline ${g.hostName}'s invitation`}>
+                      Decline
+                    </button>
+                  </form>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )
+      }
+    </section>
+
+    <section class="board" aria-labelledby="sent-heading">
+      <h2 id="sent-heading">You sent</h2>
+      {
+        sent.length === 0 ? (
+          <p class="empty">You haven't invited anyone yet.</p>
+        ) : (
+          <ul class="games single">
+            {sent.map((g) => (
+              <li class="game">
+                <p class="game-when">
+                  <time datetime={g.startsAt}>{formatWhen(g.startsAt)}</time>
+                </p>
+                <p class="game-where">{venueLabel(g.venue)}</p>
+                <p class="game-who">
+                  {kinds[g.kind]} · to <a href={`/players/${g.invitedId}`}>{g.invitedName}</a> · {standing(g.status)}
+                </p>
+                {g.note && <p class="game-note">{g.note}</p>}
+                <p class="game-who">
+                  <a href={`/games/${g.id}`}>Messages</a>
+                </p>
+                {g.status === "open" && (
+                  <form method="post" action={`/games/${g.id}/withdraw`}>
+                    <button class="button button-quiet" type="submit">
+                      Withdraw
+                    </button>
+                  </form>
+                )}
+              </li>
+            ))}
+          </ul>
+        )
+      }
+    </section>
+  </main>
+</Base>

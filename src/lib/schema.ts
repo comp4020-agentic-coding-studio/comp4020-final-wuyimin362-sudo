@@ -116,21 +116,41 @@ export const reviews = sqliteTable(
 );
 
 // A game one member offers and another takes up. It stays open until someone
-// accepts it, and until then its host can withdraw it.
+// accepts it, and until then its host can withdraw it; a direct invitation can
+// also be declined.
 export const games = sqliteTable("games", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   hostId: text("host_id")
     .notNull()
     .references(() => players.id),
   guestId: text("guest_id").references(() => players.id),
+  // set when the host invited one member directly: then only they can take it,
+  // and it stays off the public board until they do
+  invitedId: text("invited_id").references(() => players.id),
   // Canberra wall-clock time, YYYY-MM-DDTHH:mm (see src/lib/time.ts)
   startsAt: text("starts_at").notNull(),
   venue: text("venue").notNull(),
   kind: text("kind", { enum: ["match", "practice"] }).notNull(),
   note: text("note").notNull().default(""),
-  status: text("status", { enum: ["open", "accepted", "withdrawn"] })
+  status: text("status", { enum: ["open", "accepted", "withdrawn", "declined"] })
     .notNull()
     .default("open"),
+  createdAt: text("created_at")
+    .notNull()
+    .default(sql`(datetime('now'))`),
+});
+
+// A short thread inside one game, between its two players only: messages live
+// in a game, never in a general chat.
+export const messages = sqliteTable("messages", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  gameId: integer("game_id")
+    .notNull()
+    .references(() => games.id, { onDelete: "cascade" }),
+  authorId: text("author_id")
+    .notNull()
+    .references(() => players.id, { onDelete: "cascade" }),
+  body: text("body").notNull(),
   createdAt: text("created_at")
     .notNull()
     .default(sql`(datetime('now'))`),

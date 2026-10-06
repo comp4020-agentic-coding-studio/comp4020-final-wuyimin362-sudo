@@ -3,6 +3,7 @@
 // way to sign in, and nothing about the member: the profile isn't even looked
 // up for them.
 import Avatar from "../../components/Avatar.astro";
+import GameFields from "../../components/GameFields.astro";
 import Hexagon from "../../components/Hexagon.astro";
 import Base from "../../layouts/Base.astro";
 import { kinds, upcomingGames } from "../../lib/games";
@@ -27,6 +28,16 @@ const notGiven = "Not given";
 const standing = profile ? ratings().get(profile.id) : undefined;
 const record = profile ? recordOf(profile.id, 5) : [];
 const opinions = profile ? standingOf(profile.id) : undefined;
+const canInvite = profile !== undefined && viewer?.id !== profile.id;
+const inviteProblems: Record<string, string> = {
+  time: "Pick a time between now and eight weeks from now.",
+  venue: "Pick one of the listed venues.",
+  kind: "Choose a match or a practice.",
+  note: "Keep the note to 200 characters.",
+  invitee: "Only members can be invited, and not yourself.",
+};
+const problemKey = Astro.url.searchParams.get("problem");
+const inviteProblem = problemKey && Object.hasOwn(inviteProblems, problemKey) ? inviteProblems[problemKey] : undefined;
 const aspectKeys = Object.keys(aspects) as Aspect[];
 ---
 
@@ -65,6 +76,24 @@ const aspectKeys = Object.keys(aspects) as Aspect[];
               )}
             </div>
           </div>
+
+          {canInvite && (
+            <section class="panel" aria-labelledby="invite-heading">
+              <h2 id="invite-heading">Invite {profile.name} to a game</h2>
+              <p class="muted">Only they can accept it, and it stays off the board until they do.</p>
+              {inviteProblem && (
+                <p class="notice notice-problem" role="alert">
+                  {inviteProblem}
+                </p>
+              )}
+              <form method="post" action={`/players/${profile.id}/invite`} class="post-form">
+                <GameFields />
+                <button class="button" type="submit">
+                  Send invitation
+                </button>
+              </form>
+            </section>
+          )}
 
           <section class="panel" aria-labelledby="record-heading">
             <h2 id="record-heading">Record</h2>

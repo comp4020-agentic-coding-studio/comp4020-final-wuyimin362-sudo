@@ -1,0 +1,95 @@
+---
+// A game's own page: what's agreed, and the short thread between its two
+// players. Anyone else gets a 403, and the thread isn't even read for them.
+import PlayerName from "../../components/PlayerName.astro";
+import Base from "../../layouts/Base.astro";
+import { kinds } from "../../lib/games";
+import { MESSAGE_MAX, messagesOf, threadFor } from "../../lib/messages";
+import { currentPlayer } from "../../lib/players";
+import { formatMoment, formatWhen } from "../../lib/time";
+import { venueLabel } from "../../lib/venues";
+
+const player = currentPlayer(Astro.cookies);
+const id = Number(Astro.params.id);
+const game = player ? threadFor(id, player) : undefined;
+if (!game) Astro.response.status = 403;
+const thread = game ? messagesOf(id) : [];
+const problem =
+  Astro.url.searchParams.get("problem") === "body" ? `Write something, up to ${MESSAGE_MAX} characters.` : undefined;
+const standing = game
+  ? game.status === "accepted"
+    ? "Agreed"
+    : game.status === "declined"
+      ? "Declined"
+      : game.status === "withdrawn"
+        ? "Withdrawn"
+        : "Waiting for an answer"
+  : "";
+---
+
+<Base title="Game · Find a game">
+  <main class="wrap narrow">
+    {
+      !game ? (
+        <section class="panel">
+          <h1>Not your game</h1>
+          <p class="muted">
+            A game's messages are for its two players only. <a href="/">Back to the board</a>
+          </p>
+        </section>
+      ) : (
+        <>
+          <section class="panel" aria-labelledby="game-heading">
+            <h1 id="game-heading">{formatWhen(game.startsAt)}</h1>
+            <p class="muted">
+              {venueLabel(game.venue)} · {kinds[game.kind]} · {standing}
+            </p>
+            <p>
+              <PlayerName id={game.hostId} name={game.hostName} username={game.hostUsername} />
+              {" and "}
+              {game.guestId ? (
+                <PlayerName id={game.guestId} name={game.guestName ?? ""} username={game.guestUsername} />
+              ) : (
+                <a href={`/players/${game.invitedId}`}>{game.invitedName}</a>
+              )}
+            </p>
+            {game.note && <p class="game-note">{game.note}</p>}
+          </section>
+
+          <section class="panel" aria-labelledby="thread-heading">
+            <h2 id="thread-heading">Messages</h2>
+            <p class="muted">Only the two of you can read these.</p>
+            {thread.length === 0 ? (
+              <p class="muted">Nothing yet.</p>
+            ) : (
+              <ol class="thread">
+                {thread.map((m, i) => (
+                  <li class={m.authorId === player?.id ? "mine" : undefined} id={i === thread.length - 1 ? "latest" : undefined}>
+                    <p class="thread-meta">
+                      {m.authorName} · {formatMoment(m.createdAt)}
+                    </p>
+                    <p>{m.body}</p>
+                  </li>
+                ))}
+              </ol>
+            )}
+            {problem && (
+              <p class="notice notice-problem" role="alert">
+                {problem}
+              </p>
+            )}
+            <form method="post" action={`/games/${id}/messages`} class="stack-form">
+              <label class="field">
+                <span>Your message</span>
+                <textarea name="body" required maxlength={MESSAGE_MAX} rows="3"></textarea>
+              </label>
+              <button class="button" type="submit">
+                Send
+              </button>
+            </form>
+          </section>
+        </>
+      )
+    }
+  </main>
+</Base>

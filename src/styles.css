@@ -541,6 +541,53 @@ select:focus-visible {
   accent-color: var(--blue);
 }
 
+/* --- a game's messages, as bubbles ------------------------------------- */
+.thread {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 20px;
+  padding: 0;
+  list-style: none;
+}
+
+.thread li {
+  max-width: 85%;
+  padding: 10px 14px;
+  border-radius: 16px;
+  background: var(--bg);
+}
+
+.thread li.mine {
+  justify-self: end;
+  background: var(--blue-wash);
+}
+
+.thread p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.thread .thread-meta {
+  margin-bottom: 2px;
+  color: var(--text-secondary);
+  font-size: 0.76rem;
+}
+
+textarea {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  resize: vertical;
+}
+
+textarea:focus-visible {
+  border-color: var(--blue);
+}
+
 /* --- the hexagon ------------------------------------------------------- */
 .hexagon-wrap {
   display: grid;

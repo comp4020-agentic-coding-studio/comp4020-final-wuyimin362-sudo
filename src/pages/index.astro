@@ -2,18 +2,18 @@
 // The board: every game still to come, and the forms to join, post a game and
 // take one up. It all works without JavaScript: each action is a form POST that
 // comes back here with a 303 and a line saying what happened.
+import GameFields from "../components/GameFields.astro";
 import PlayerName from "../components/PlayerName.astro";
 import Base from "../layouts/Base.astro";
 import { HORIZON_DAYS, kinds, NOTE_MAX, upcomingGames } from "../lib/games";
 import { currentPlayer, isGuest, NAME_MAX } from "../lib/players";
-import { addDays, canberraNow, formatWhen } from "../lib/time";
-import { states, venueLabel, venues } from "../lib/venues";
+import { formatWhen } from "../lib/time";
+import { venueLabel } from "../lib/venues";
 
 const player = currentPlayer(Astro.cookies);
 const games = upcomingGames();
 const open = games.filter((g) => g.status === "open");
 const on = games.filter((g) => g.status === "accepted");
-const now = canberraNow();
 
 const notices: Record<string, string> = {
   joined: "You're on the board as a guest. Post a game, or take one below.",
@@ -69,46 +69,7 @@ const problem = pick(problems, Astro.url.searchParams.get("problem"));
             </p>
           </div>
           <form method="post" action="/games" class="post-form">
-            <label class="field">
-              <span>When</span>
-              <input
-                type="datetime-local"
-                name="startsAt"
-                required
-                min={now}
-                max={addDays(now, HORIZON_DAYS)}
-                step="900"
-              />
-            </label>
-            <label class="field">
-              <span>Where</span>
-              <select name="venue" required>
-                <option value="">Choose a venue</option>
-                {states.map((state) => (
-                  <optgroup label={state}>
-                    {venues
-                      .filter((v) => v.state === state)
-                      .map((v) => (
-                        <option value={v.id}>{venueLabel(v.id)}</option>
-                      ))}
-                  </optgroup>
-                ))}
-              </select>
-            </label>
-            <label class="field">
-              <span>What</span>
-              <select name="kind">
-                {Object.entries(kinds).map(([value, label]) => (
-                  <option value={value}>{label}</option>
-                ))}
-              </select>
-            </label>
-            <label class="field">
-              <span>
-                Note <small>(optional)</small>
-              </span>
-              <input name="note" maxlength={NOTE_MAX} placeholder="Best of five? Happy to just rally." />
-            </label>
+            <GameFields />
             <button class="button" type="submit">
               Post game
             </button>
@@ -208,6 +169,11 @@ const problem = pick(problems, Astro.url.searchParams.get("problem"));
                   {` · ${kinds[g.kind]}`}
                 </p>
                 {g.note && <p class="game-note">{g.note}</p>}
+                {(player?.id === g.hostId || player?.id === g.guestId) && (
+                  <p class="game-who">
+                    <a href={`/games/${g.id}`}>Messages about this game</a>
+                  </p>
+                )}
               </li>
             ))}
           </ul>

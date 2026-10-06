@@ -33,6 +33,19 @@ export function addDays(wallClock: string, days: number): string {
   return new Date(asUtc(wallClock).getTime() + days * 86_400_000).toISOString().slice(0, 16);
 }
 
+// "Tue 6 Oct, 11:58 pm" in Canberra, from a UTC timestamp as SQLite writes it
+// ("YYYY-MM-DD HH:MM:SS").
+export function formatMoment(utc: string): string {
+  return new Intl.DateTimeFormat("en-AU", {
+    timeZone: ZONE,
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(new Date(`${utc.replace(" ", "T")}Z`));
+}
+
 // "Mon 5 Oct", from a YYYY-MM-DD date.
 export function formatDay(date: string): string {
   return new Intl.DateTimeFormat("en-AU", {

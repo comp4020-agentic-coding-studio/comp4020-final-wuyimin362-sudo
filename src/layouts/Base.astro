@@ -2,6 +2,7 @@
 // Every page's frame: the landmarks, the app's name, who's signed in, and the
 // note that this is not the club's own site.
 import "../styles.css";
+import { invitationsFor } from "../lib/games";
 import { waitingFor } from "../lib/matches";
 import { currentPlayer, isGuest } from "../lib/players";
 
@@ -14,6 +15,8 @@ const path = Astro.url.pathname;
 const player = currentPlayer(Astro.cookies);
 // reports waiting for a member to confirm, flagged in the header
 const waiting = player && !isGuest(player) ? waitingFor(player.id).length : 0;
+// and invitations waiting for an answer
+const invited = player && !isGuest(player) ? invitationsFor(player.id).length : 0;
 ---
 
 <!doctype html>
@@ -58,6 +61,17 @@ const waiting = player && !isGuest(player) ? waitingFor(player.id).length : 0;
                 {isGuest(player) ? (
                   <a href="/signup">Make an account</a>
                 ) : (
+                  <a href="/invites" aria-current={path === "/invites" ? "page" : undefined}>
+                    Invites
+                    {invited > 0 && (
+                      <>
+                        {" "}
+                        <span class="badge badge-alert">{invited} new</span>
+                      </>
+                    )}
+                  </a>
+                )}
+                {!isGuest(player) && (
                   <a href="/matches" aria-current={path === "/matches" ? "page" : undefined}>
                     Matches
                     {waiting > 0 && (
