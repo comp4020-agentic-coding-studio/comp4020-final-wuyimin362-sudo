@@ -38,6 +38,25 @@ export function submit(form: HTMLFormElement, fields: Record<string, string>, wh
   });
 }
 
+// Uploads a file through a form, as a browser sends a file input: multipart,
+// from this origin, without following the redirect.
+export function upload(form: HTMLFormElement, field: string, file: Blob, filename: string, who: Visitor) {
+  const body = new FormData();
+  body.append(field, file, filename);
+  return fetch(new URL(form.getAttribute("action") ?? "", baseUrl), {
+    method: "POST",
+    redirect: "manual",
+    headers: { origin: new URL(baseUrl).origin, ...cookieHeader(who) },
+    body,
+  });
+}
+
+// A GET that reports whatever the server says, for pages a visitor may be
+// refused.
+export function fetchAs(path: string, who: Visitor) {
+  return fetch(new URL(path, baseUrl), { headers: cookieHeader(who), redirect: "manual" });
+}
+
 // The cookies a response sets, as the next request would send them. A cookie
 // being deleted isn't one.
 export function cookieFrom(res: Response): string {
@@ -90,6 +109,20 @@ export async function join(name: string): Promise<Visitor> {
   const cookie = cookieFrom(res);
   expect(cookie, "joining set no cookie, so the app can't know them again").not.toBe("");
   return { cookie };
+}
+
+// Signs up a new member and returns their browser.
+export async function member(label: string): Promise<{ who: Visitor; name: string }> {
+  const id = crypto.randomUUID().slice(0, 8);
+  const name = `Spec ${label} ${id}`;
+  const form = formWith(await visit("/signup", stranger), "username");
+  const res = await submit(
+    form,
+    { username: `spec_${label}_${id}`.slice(0, 20), name, password: `password ${id}` },
+    stranger,
+  );
+  expect(res.status, "signing up a member").toBe(303);
+  return { who: { cookie: cookieFrom(res) }, name };
 }
 
 export async function postGame(who: Visitor, note: string): Promise<void> {
