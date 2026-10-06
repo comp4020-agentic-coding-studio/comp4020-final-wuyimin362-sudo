@@ -84,7 +84,9 @@ const gameCounts = ["0", "1", "2", "3", "4"];
                 <p class="game-when">{formatDay(m.playedOn)}</p>
                 <p class="game-where">{venueLabel(m.venue)}</p>
                 <p class="game-who">
-                  {m.reporterName} says it finished {m.reporterName} {m.reporterGames}–{m.opponentGames} you.
+                  {m.reporterGames > m.opponentGames
+                    ? `${m.reporterName} says they won ${m.reporterGames}–${m.opponentGames}.`
+                    : `${m.reporterName} says you won ${m.opponentGames}–${m.reporterGames}.`}
                 </p>
                 <div class="actions">
                   <form method="post" action={`/matches/${m.id}/confirm`}>
