@@ -155,3 +155,21 @@ export const messages = sqliteTable("messages", {
     .notNull()
     .default(sql`(datetime('now'))`),
 });
+
+// A member's interest in one of Table Tennis ACT's events (src/lib/events.ts):
+// going, or looking for a doubles partner. One per member per event; the app
+// never takes entries, which stay with Table Tennis ACT.
+export const eventInterest = sqliteTable(
+  "event_interest",
+  {
+    eventId: text("event_id").notNull(),
+    playerId: text("player_id")
+      .notNull()
+      .references(() => players.id, { onDelete: "cascade" }),
+    kind: text("kind", { enum: ["going", "partner"] }).notNull(),
+    createdAt: text("created_at")
+      .notNull()
+      .default(sql`(datetime('now'))`),
+  },
+  (t) => [primaryKey({ columns: [t.eventId, t.playerId] })],
+);

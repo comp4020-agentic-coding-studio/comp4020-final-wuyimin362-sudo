@@ -39,6 +39,7 @@ const invited = player && !isGuest(player) ? invitationsFor(player.id).length : 
           <a href="/" aria-current={path === "/" ? "page" : undefined}>Board</a>
           <a href="/venues" aria-current={path === "/venues" ? "page" : undefined}>Venues</a>
           <a href="/players" aria-current={path === "/players" ? "page" : undefined}>Players</a>
+          <a href="/events" aria-current={path === "/events" ? "page" : undefined}>Events</a>
           <a href="/readme/" aria-current={path.startsWith("/readme") ? "page" : undefined}>About</a>
         </nav>
         <div class="account">

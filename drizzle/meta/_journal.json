@@ -50,6 +50,13 @@
       "when": 1791291770829,
       "tag": "0006_invites_and_messages",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1791292144519,
+      "tag": "0007_event_interest",
+      "breakpoints": true
     }
   ]
 }

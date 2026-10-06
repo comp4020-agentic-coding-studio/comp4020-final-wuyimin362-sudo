@@ -1,0 +1,99 @@
+---
+// Table Tennis ACT's events, for anyone, each linking to its own page on
+// Table Tennis ACT's site for details and entry: the app takes no entries.
+// Members can say they're going or looking for a doubles partner, and only
+// members see who has.
+import Base from "../../layouts/Base.astro";
+import { currentEvents, eventUrl, type Interest, interestIn } from "../../lib/events";
+import { currentPlayer, isGuest } from "../../lib/players";
+import { formatWhen } from "../../lib/time";
+
+const player = currentPlayer(Astro.cookies);
+const isMember = player !== undefined && !isGuest(player);
+const shown = currentEvents();
+const interest = isMember ? interestIn(shown.map((e) => e.id)) : new Map();
+const mine = (eventId: string): Interest | undefined => {
+  const entry = interest.get(eventId);
+  if (entry?.going.some((p: { id: string }) => p.id === player?.id)) return "going";
+  if (entry?.partner.some((p: { id: string }) => p.id === player?.id)) return "partner";
+};
+const choices: { kind: Interest | "none"; label: string }[] = [
+  { kind: "going", label: "I'm going" },
+  { kind: "partner", label: "Looking for a partner" },
+  { kind: "none", label: "Not for me" },
+];
+---
+
+<Base title="Events · Find a game">
+  <main class="wrap narrow">
+    <section class="hero hero-small">
+      <h1>Events.</h1>
+      <p class="lede">Table Tennis ACT's competitions and camps. Entries go through Table Tennis ACT.</p>
+    </section>
+
+    {
+      !isMember && (
+        <p class="muted after-form">
+          Members can say they're going, or find a doubles partner. <a href="/login">Log in</a> or{" "}
+          <a href="/signup">make an account</a>.
+        </p>
+      )
+    }
+
+    <ul class="games single">
+      {
+        shown.map((e) => (
+          <li class="game event" id={`event-${e.id}`}>
+            <h2 class="game-when">{e.title}</h2>
+            <p class="game-where">
+              From {formatWhen(e.starts)} to {formatWhen(e.ends)}
+            </p>
+            <p class="game-who">
+              <a href={eventUrl(e.id)}>Details and entry on Table Tennis ACT's site</a>
+            </p>
+            {isMember && (
+              <>
+                <p class="game-who">
+                  Going:{" "}
+                  {interest.get(e.id)?.going.length
+                    ? interest.get(e.id)!.going.map((p: { id: string; name: string }, i: number) => (
+                        <>
+                          {i > 0 && ", "}
+                          <a href={`/players/${p.id}`}>{p.name}</a>
+                        </>
+                      ))
+                    : "nobody yet"}
+                </p>
+                <p class="game-who">
+                  Looking for a doubles partner:{" "}
+                  {interest.get(e.id)?.partner.length
+                    ? interest.get(e.id)!.partner.map((p: { id: string; name: string }, i: number) => (
+                        <>
+                          {i > 0 && ", "}
+                          <a href={`/players/${p.id}`}>{p.name}</a>
+                        </>
+                      ))
+                    : "nobody yet"}
+                </p>
+                <div class="actions">
+                  {choices.map((c) => (
+                    <form method="post" action={`/events/${e.id}/interest`}>
+                      <input type="hidden" name="kind" value={c.kind} />
+                      <button
+                        class={mine(e.id) === c.kind ? "button" : "button button-quiet"}
+                        type="submit"
+                        aria-pressed={mine(e.id) === c.kind ? "true" : "false"}
+                      >
+                        {c.label}
+                      </button>
+                    </form>
+                  ))}
+                </div>
+              </>
+            )}
+          </li>
+        ))
+      }
+    </ul>
+  </main>
+</Base>
