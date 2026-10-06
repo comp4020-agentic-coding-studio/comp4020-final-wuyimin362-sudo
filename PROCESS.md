@@ -113,8 +113,10 @@ keep.
 ## Next
 
 Profiles came first
-([`5b62c2a...a61dc5d`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-wuyimin362-sudo/compare/5b62c2a...a61dc5d)):
-a photo is stored only if its own bytes say it's an image, and nothing on a
-profile reaches a non-member. Then come confirmed scores and the rating, reviews
-and the hexagon, invitations with their messages (crit 9 wants a new message on
-screen within a second), and official events.
+([`5b62c2a...a61dc5d`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-wuyimin362-sudo/compare/5b62c2a...a61dc5d)),
+then venues and players
+([`14b9ebc...45e1bee`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-wuyimin362-sudo/compare/14b9ebc...45e1bee)):
+a photo is stored only if its bytes say it's an image, and the venue page's
+script is read line by line for any way to send a location. Next: confirmed
+scores and the rating, reviews and the hexagon, invitations with messages (crit
+9 wants a new message on screen within a second), and official events.

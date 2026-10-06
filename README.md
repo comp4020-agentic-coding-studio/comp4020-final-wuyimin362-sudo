@@ -27,12 +27,11 @@ The look borrows Apple's web style (system type, white cards, one blue for anyth
 
 ## Coming next, and the lines it won't cross
 
-The first version cut my original idea down to the board. Profiles are back: a member can show their photo, blade and rubbers, grip, style and the venues they usually play at, and link their Ratings Central rating, and only other signed-in members can see any of it. The rest is coming, within these limits:
+The first version cut my original idea down to the board. Profiles are back: a member can show their photo, blade and rubbers, grip, style and the venues they usually play at, and link their Ratings Central rating, and only other signed-in members can see any of it. Finding is back too: anyone can browse the venues and sort them by distance, worked out in their own browser so their location never reaches the server, and members can find players who share their usual venues or play the style they want to practise against. The rest is coming, within these limits:
 
 - **A friendly-match rating**, marked unofficial. A score only counts once both players confirm it, and your profile links to your Ratings Central rating for the official number.
 - **Opponents' views of your style**, scored on six things (serve, receive, forehand, backhand, footwork, tactics) and drawn as a hexagon. Only someone you've played in a confirmed match can give one, and the chart appears only after three, so no single opinion stands for anyone. The club's etiquette asks players to respect their opponents, and this is how the app holds to it.
 - **Direct invitations**: ask a particular member for a game, with a short thread of messages attached to that invitation, not a general chat.
-- **Venues near you**, sorted by distance in your browser. Your location won't reach the server.
 - **Official events**, each linking to Table Tennis ACT's own entry page, with a way to say you're going or looking for a doubles partner. The app won't take entries.
 
 Still not building: email collection, location tracking, a general chat, or entries to official competitions.
@@ -44,6 +43,7 @@ Checked by `spec/` on every push:
 - a stranger can join with just a name, post a game, and find it when they come back; another member can take it, and the host sees who (`spec/alive.test.ts`)
 - a member who signs up, logs out and logs in from another browser is the same person, and logging out ends the session on the server; a taken username and a wrong password are turned away; five wrong passwords lock an account for a minute; a guest who makes an account keeps their games (`spec/accounts.test.ts`)
 - a member's profile, photo included, shows to other members and to no one else, and a file that isn't a real image is refused (`spec/profiles.test.ts`)
+- every venue the board offers is listed for anyone; the venues page's script has no way to send a location anywhere; members find members who share their venues or play a given style, and non-members see none of it (`spec/discovery.test.ts`)
 - this README is published at `/readme/` (`spec/invariants.test.ts`)
 
 Enforced in the code, with checks still to write: two people can't take the same game, and games can only be posted at listed venues, up to eight weeks ahead.

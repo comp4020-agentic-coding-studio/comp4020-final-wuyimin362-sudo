@@ -6,8 +6,11 @@ rules, the README changes first, then the rule.
 
 ## What the app must never do
 
-- Ask for an email address or a location, or make anyone sign up just to try
-  the board: a guest joins with a name.
+- Ask for an email address, or make anyone sign up just to try the board: a
+  guest joins with a name.
+- Send a visitor's location anywhere. Distance to venues is worked out in the
+  browser by an inline script with no fetch, beacon or socket, and no page
+  loads an external script.
 - Offer a venue that isn't in `src/lib/venues.ts`, or a free-text address
   field. A venue change cites the page it came from.
 - Count a match score that both players haven't confirmed, or present the
