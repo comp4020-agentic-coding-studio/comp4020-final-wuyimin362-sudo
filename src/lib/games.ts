@@ -1,6 +1,7 @@
 import { and, asc, eq, gt, inArray, isNotNull, isNull, ne, notInArray, or } from "drizzle-orm";
 import { alias } from "drizzle-orm/sqlite-core";
 import { db } from "./db";
+import { publish } from "./live";
 import { isGuest, type Player } from "./players";
 import { games, players } from "./schema";
 import { addDays, canberraNow, isWallClock } from "./time";
@@ -100,6 +101,7 @@ export function postGame(player: Player, offer: Offer): Problem | undefined {
       note: offer.note.trim(),
     })
     .run();
+  publish("board");
 }
 
 // A game offered to one member, who has to be a member and not the host.
@@ -139,7 +141,8 @@ export function acceptGame(id: number, player: Player): Problem | undefined {
       ),
     )
     .run();
-  return changes === 1 ? undefined : "gone";
+  if (changes !== 1) return "gone";
+  publish("board", `game:${id}`);
 }
 
 // Only the member invited can decline, and only while it's waiting.
@@ -149,7 +152,8 @@ export function declineInvitation(id: number, player: Player): Problem | undefin
     .set({ status: "declined" })
     .where(and(eq(games.id, id), eq(games.invitedId, player.id), eq(games.status, "open")))
     .run();
-  return changes === 1 ? undefined : "gone";
+  if (changes !== 1) return "gone";
+  publish(`game:${id}`);
 }
 
 // Only the host can withdraw, and only while nobody has taken the game.
@@ -159,5 +163,6 @@ export function withdrawGame(id: number, player: Player): Problem | undefined {
     .set({ status: "withdrawn" })
     .where(and(eq(games.id, id), eq(games.hostId, player.id), inArray(games.status, ["open"])))
     .run();
-  return changes === 1 ? undefined : "gone";
+  if (changes !== 1) return "gone";
+  publish("board", `game:${id}`);
 }

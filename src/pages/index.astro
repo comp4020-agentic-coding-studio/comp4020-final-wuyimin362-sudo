@@ -99,7 +99,7 @@ const problem = pick(problems, Astro.url.searchParams.get("problem"));
       )
     }
 
-    <section class="board" aria-labelledby="open-heading">
+    <section class="board" id="open-games" aria-labelledby="open-heading">
       <h2 id="open-heading">Open games</h2>
       {
         open.length === 0 ? (
@@ -145,7 +145,7 @@ const problem = pick(problems, Astro.url.searchParams.get("problem"));
       }
     </section>
 
-    <section class="board" aria-labelledby="on-heading">
+    <section class="board" id="games-on" aria-labelledby="on-heading">
       <h2 id="on-heading">Games on</h2>
       {
         on.length === 0 ? (
@@ -180,5 +180,51 @@ const problem = pick(problems, Astro.url.searchParams.get("problem"));
         )
       }
     </section>
+    <p class="visually-hidden" aria-live="polite" data-live-status></p>
   </main>
+
+  <script is:inline>
+    // The board stays live: when anyone posts, takes or withdraws a game, the
+    // server says so on /live/board, and this page fetches itself again and
+    // swaps in the fresh lists. After a dropped connection it catches up once it
+    // reconnects. Without JavaScript the board still works, after a reload.
+    (() => {
+      if (!("EventSource" in window)) return;
+      const status = document.querySelector("[data-live-status]");
+      let busy = false;
+      let again = false;
+      const refresh = async () => {
+        if (busy) {
+          again = true;
+          return;
+        }
+        busy = true;
+        try {
+          const res = await fetch(location.pathname, { headers: { accept: "text/html" } });
+          const fresh = new DOMParser().parseFromString(await res.text(), "text/html");
+          for (const id of ["open-games", "games-on"]) {
+            const next = fresh.getElementById(id);
+            const current = document.getElementById(id);
+            if (next && current) current.replaceWith(next);
+          }
+          if (status) status.textContent = "The board just changed.";
+        } catch {
+          // the next change, or a reload, catches up
+        } finally {
+          busy = false;
+          if (again) {
+            again = false;
+            refresh();
+          }
+        }
+      };
+      const source = new EventSource("/live/board");
+      let opened = false;
+      source.addEventListener("change", refresh);
+      source.addEventListener("open", () => {
+        if (opened) refresh();
+        opened = true;
+      });
+    })();
+  </script>
 </Base>

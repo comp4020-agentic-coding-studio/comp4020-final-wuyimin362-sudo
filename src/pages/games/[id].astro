@@ -41,7 +41,7 @@ const standing = game
         <>
           <section class="panel" aria-labelledby="game-heading">
             <h1 id="game-heading">{formatWhen(game.startsAt)}</h1>
-            <p class="muted">
+            <p class="muted" id="game-status">
               {venueLabel(game.venue)} · {kinds[game.kind]} · {standing}
             </p>
             <p>
@@ -59,20 +59,22 @@ const standing = game
           <section class="panel" aria-labelledby="thread-heading">
             <h2 id="thread-heading">Messages</h2>
             <p class="muted">Only the two of you can read these.</p>
-            {thread.length === 0 ? (
-              <p class="muted">Nothing yet.</p>
-            ) : (
-              <ol class="thread">
-                {thread.map((m, i) => (
-                  <li class={m.authorId === player?.id ? "mine" : undefined} id={i === thread.length - 1 ? "latest" : undefined}>
-                    <p class="thread-meta">
-                      {m.authorName} · {formatMoment(m.createdAt)}
-                    </p>
-                    <p>{m.body}</p>
-                  </li>
-                ))}
-              </ol>
-            )}
+            <div id="thread-area">
+              {thread.length === 0 ? (
+                <p class="muted">Nothing yet.</p>
+              ) : (
+                <ol class="thread">
+                  {thread.map((m, i) => (
+                    <li class={m.authorId === player?.id ? "mine" : undefined} id={i === thread.length - 1 ? "latest" : undefined}>
+                      <p class="thread-meta">
+                        {m.authorName} · {formatMoment(m.createdAt)}
+                      </p>
+                      <p>{m.body}</p>
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </div>
             {problem && (
               <p class="notice notice-problem" role="alert">
                 {problem}
@@ -91,5 +93,51 @@ const standing = game
         </>
       )
     }
+    <p class="visually-hidden" aria-live="polite" data-live-status></p>
   </main>
+
+  <script define:vars={{ stream: game ? `/live/games/${id}` : "" }}>
+    // A game's page stays live for its two players: a new message, or the game
+    // being accepted, declined or withdrawn, arrives on the game's own stream,
+    // and the page fetches itself again and swaps in the thread and the game's
+    // standing. After a dropped connection it catches up once it reconnects.
+    (() => {
+      if (!stream || !("EventSource" in window)) return;
+      const status = document.querySelector("[data-live-status]");
+      let busy = false;
+      let again = false;
+      const refresh = async () => {
+        if (busy) {
+          again = true;
+          return;
+        }
+        busy = true;
+        try {
+          const res = await fetch(location.pathname, { headers: { accept: "text/html" } });
+          const fresh = new DOMParser().parseFromString(await res.text(), "text/html");
+          for (const id of ["thread-area", "game-status"]) {
+            const next = fresh.getElementById(id);
+            const current = document.getElementById(id);
+            if (next && current) current.replaceWith(next);
+          }
+          if (status) status.textContent = "The conversation just changed.";
+        } catch {
+          // the next change, or a reload, catches up
+        } finally {
+          busy = false;
+          if (again) {
+            again = false;
+            refresh();
+          }
+        }
+      };
+      const source = new EventSource(stream);
+      let opened = false;
+      source.addEventListener("change", refresh);
+      source.addEventListener("open", () => {
+        if (opened) refresh();
+        opened = true;
+      });
+    })();
+  </script>
 </Base>

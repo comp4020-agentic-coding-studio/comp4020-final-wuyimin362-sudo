@@ -1,6 +1,7 @@
 import { asc, eq } from "drizzle-orm";
 import { db } from "./db";
 import { gameById } from "./games";
+import { publish } from "./live";
 import type { Player } from "./players";
 import { messages, players } from "./schema";
 
@@ -36,4 +37,5 @@ export function postMessage(gameId: number, player: Player, raw: string): Messag
   const body = raw.trim();
   if (body === "" || body.length > MESSAGE_MAX) return "body";
   db.insert(messages).values({ gameId, authorId: player.id, body }).run();
+  publish(`game:${gameId}`);
 }
