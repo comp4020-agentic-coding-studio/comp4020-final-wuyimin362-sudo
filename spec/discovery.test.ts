@@ -71,7 +71,8 @@ describe.skipIf(live)("finding venues and players", () => {
     // ...but finds them anywhere when looking for a defender to practise against
     expect(await players(faraway.who, { venue: "", style: "defender" })).toContain(chopper.name);
 
-    for (const visitor of [stranger, await join(`Spec onlooker ${chopper.name}`)]) {
+    // (the guest's own name shows in the header, so it mustn't contain the one checked for)
+    for (const visitor of [stranger, await join("Spec onlooker")]) {
       const res = await fetchAs("/players", visitor);
       expect(res.status).toBe(403);
       expect(await res.text()).not.toContain(chopper.name);
