@@ -1,18 +1,35 @@
 # syntax = docker/dockerfile:1
 
-# A placeholder, and yours to replace: it serves one page, plus README.md
-# verbatim at /readme/, which is enough to prove the deploy path end to end.
-# Whatever your app is built with, the image that replaces this one must serve
-# HTTP on 0.0.0.0:$PORT (fly.toml sets PORT) and publish README.md at /readme/
-# (spec/README.md says what's checked).
+# The app's image: install, build the Astro server, then keep only the built
+# server and its production dependencies. It serves HTTP on 0.0.0.0:$PORT
+# (fly.toml sets PORT) and publishes README.md at /readme/ (spec/README.md
+# says what's checked).
 
-FROM docker.io/library/busybox:1.38.0
-COPY placeholder/ /src/
-COPY README.md /src/
-# README.md goes into the page as-is, HTML-escaped, in place of @README@;
-# rendering it properly is your app's job
-RUN mkdir -p /site/readme \
-    && cp /src/index.html /site/ \
-    && sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g' /src/README.md > /src/body \
-    && sed -e '/@README@/{r /src/body' -e 'd}' /src/readme.html > /site/readme/index.html
-CMD ["sh", "-c", "exec httpd -f -p 0.0.0.0:${PORT:-8080} -h /site"]
+# the versions mise.toml pins for local work
+ARG NODE_VERSION=24.21.0
+ARG PNPM_VERSION=11.9.0
+
+FROM docker.io/library/node:${NODE_VERSION}-slim AS base
+ARG PNPM_VERSION
+WORKDIR /app
+ENV NODE_ENV=production
+RUN npm install -g pnpm@${PNPM_VERSION}
+
+# --- build: install everything, build, then prune to production deps --------
+FROM base AS build
+# a toolchain for better-sqlite3, in case no prebuilt binding matches the image
+RUN apt-get update -qq \
+    && apt-get install --no-install-recommends -y build-essential python3 \
+    && rm -rf /var/lib/apt/lists/*
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+RUN pnpm install --frozen-lockfile --prod=false
+COPY . .
+RUN pnpm run build && pnpm prune --prod
+
+# --- runtime: the built server and what it needs at run time ----------------
+FROM base
+COPY --from=build /app/node_modules /app/node_modules
+COPY --from=build /app/dist /app/dist
+ENV HOST=0.0.0.0
+ENV PORT=8080
+CMD ["node", "./dist/server/entry.mjs"]

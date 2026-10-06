@@ -1,0 +1,14 @@
+---
+// README.md, published with the app: what good means here, read before the
+// app is used. spec/invariants.test.ts checks its headings arrive in the HTML
+// the server sends.
+import * as readme from "../../README.md";
+import Base from "../layouts/Base.astro";
+
+const title = readme.getHeadings().find((h) => h.depth === 1)?.text ?? "README";
+const html = await readme.compiledContent();
+---
+
+<Base title={title}>
+  <main class="wrap prose" set:html={html} />
+</Base>
