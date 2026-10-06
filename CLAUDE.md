@@ -58,7 +58,11 @@ rules, the README changes first, then the rule.
   and is never edited. The other checks in `spec/` drive the app through its
   own forms, using `spec/helpers.ts`.
 - Accepting a game stays one guarded update, so two people can't both take a
-  game. Confirming or disputing a match is the same: only the opponent, only
+  game, and the first accept takes it (`docs/adr/0001-first-to-accept-takes-the-game.md`).
+  No queue or hold without a new decision record.
+- Every change to a game or a message publishes its topic (`src/lib/live.ts`),
+  and every page that shows one live subscribes to it. A stream carries only a
+  topic's name, never data, and a game's stream is its two players' alone. Confirming or disputing a match is the same: only the opponent, only
   while it's waiting.
 - The club rating is replayed from confirmed matches every time it's shown.
   Never store a rating that could drift from the record.

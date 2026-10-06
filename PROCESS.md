@@ -112,5 +112,10 @@ Mistakes went into the harness rather than being retried:
 
 ## Next
 
-Crit 9: the board and each game's messages updating live, within a second, and
-the README cut back towards 600 words.
+Crit 9 is under way on its own branch. The board and each game's messages now
+update live
+([`247f3a3...edc850a`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-wuyimin362-sudo/compare/247f3a3...edc850a)),
+which a real browser showed taking 64 ms with no reload, and the multi-user
+decision is written down in `docs/adr/0001-first-to-accept-takes-the-game.md`:
+the first accept takes the game. Still to do: the README cut back towards 600
+words, and the crit 9 reflection.
