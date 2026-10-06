@@ -6,7 +6,7 @@ import Base from "../layouts/Base.astro";
 import { HORIZON_DAYS, kinds, NOTE_MAX, upcomingGames } from "../lib/games";
 import { currentPlayer, NAME_MAX } from "../lib/players";
 import { addDays, canberraNow, formatWhen } from "../lib/time";
-import { venueLabel, venues } from "../lib/venues";
+import { states, venueLabel, venues } from "../lib/venues";
 
 const player = currentPlayer(Astro.cookies);
 const games = upcomingGames();
@@ -71,8 +71,14 @@ const problem = pick(problems, Astro.url.searchParams.get("problem"));
               <span>Where</span>
               <select name="venue" required>
                 <option value="">Choose a venue</option>
-                {venues.map((v) => (
-                  <option value={v.id}>{venueLabel(v.id)}</option>
+                {states.map((state) => (
+                  <optgroup label={state}>
+                    {venues
+                      .filter((v) => v.state === state)
+                      .map((v) => (
+                        <option value={v.id}>{venueLabel(v.id)}</option>
+                      ))}
+                  </optgroup>
                 ))}
               </select>
             </label>
