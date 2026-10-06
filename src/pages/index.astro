@@ -1,11 +1,189 @@
 ---
+// The board: every game still to come, and the forms to join, post a game and
+// take one up. It all works without JavaScript: each action is a form POST that
+// comes back here with a 303 and a line saying what happened.
 import Base from "../layouts/Base.astro";
+import { HORIZON_DAYS, kinds, NOTE_MAX, upcomingGames } from "../lib/games";
+import { currentPlayer, NAME_MAX } from "../lib/players";
+import { addDays, canberraNow, formatWhen } from "../lib/time";
+import { venueLabel, venues } from "../lib/venues";
+
+const player = currentPlayer(Astro.cookies);
+const games = upcomingGames();
+const open = games.filter((g) => g.status === "open");
+const on = games.filter((g) => g.status === "accepted");
+const now = canberraNow();
+
+const notices: Record<string, string> = {
+  joined: "You're on the board. Post a game, or take one below.",
+  posted: "Posted. Everyone on the board can see it now.",
+  accepted: "You're on. The host can see it's you.",
+  withdrawn: "Withdrawn.",
+};
+const problems: Record<string, string> = {
+  name: `Give your name, up to ${NAME_MAX} characters.`,
+  join: "Join with your name first.",
+  time: `Pick a time between now and ${HORIZON_DAYS / 7} weeks from now.`,
+  venue: "Pick one of the listed venues.",
+  kind: "Choose a match or a practice.",
+  note: `Keep the note to ${NOTE_MAX} characters.`,
+  gone: "That game isn't open any more: someone took it, or it was withdrawn.",
+};
+// only the messages above, whatever the query string says
+const pick = (messages: Record<string, string>, key: string | null) =>
+  key && Object.hasOwn(messages, key) ? messages[key] : undefined;
+const done = pick(notices, Astro.url.searchParams.get("done"));
+const problem = pick(problems, Astro.url.searchParams.get("problem"));
 ---
 
 <Base title="Find a game">
   <main class="wrap">
-    <h1>Find a game</h1>
-    <p>Post when and where you want to play, and another member takes you up on it.</p>
-    <p><a href="/readme/">What this is for</a></p>
+    <section class="hero">
+      <h1>Find a game.</h1>
+      <p class="lede">Post a time and a table. Another member takes you up on it.</p>
+    </section>
+
+    {done && <p class="notice" role="status">{done}</p>}
+    {problem && <p class="notice notice-problem" role="alert">{problem}</p>}
+
+    {
+      player ? (
+        <section class="panel" aria-labelledby="post-heading">
+          <div class="panel-head">
+            <h2 id="post-heading">Post a game</h2>
+            <p class="muted">
+              You're playing as <strong>{player.name}</strong>.
+            </p>
+          </div>
+          <form method="post" action="/games" class="post-form">
+            <label class="field">
+              <span>When</span>
+              <input
+                type="datetime-local"
+                name="startsAt"
+                required
+                min={now}
+                max={addDays(now, HORIZON_DAYS)}
+                step="900"
+              />
+            </label>
+            <label class="field">
+              <span>Where</span>
+              <select name="venue" required>
+                <option value="">Choose a venue</option>
+                {venues.map((v) => (
+                  <option value={v.id}>{venueLabel(v.id)}</option>
+                ))}
+              </select>
+            </label>
+            <label class="field">
+              <span>What</span>
+              <select name="kind">
+                {Object.entries(kinds).map(([value, label]) => (
+                  <option value={value}>{label}</option>
+                ))}
+              </select>
+            </label>
+            <label class="field">
+              <span>
+                Note <small>(optional)</small>
+              </span>
+              <input name="note" maxlength={NOTE_MAX} placeholder="Best of five? Happy to just rally." />
+            </label>
+            <button class="button" type="submit">
+              Post game
+            </button>
+          </form>
+        </section>
+      ) : (
+        <section class="panel" aria-labelledby="join-heading">
+          <div class="panel-head">
+            <h2 id="join-heading">Join the board</h2>
+            <p class="muted">
+              Just the name people know you by at the club. No password: this browser remembers you.
+            </p>
+          </div>
+          <form method="post" action="/join" class="join-form">
+            <label class="field">
+              <span>Your name</span>
+              <input name="name" required maxlength={NAME_MAX} autocomplete="nickname" />
+            </label>
+            <button class="button" type="submit">
+              Join
+            </button>
+          </form>
+        </section>
+      )
+    }
+
+    <section class="board" aria-labelledby="open-heading">
+      <h2 id="open-heading">Open games</h2>
+      {
+        open.length === 0 ? (
+          <p class="empty">No open games right now. {player ? "Post one above." : "Join, then post one."}</p>
+        ) : (
+          <ul class="games">
+            {open.map((g) => (
+              <li class="game">
+                <p class="game-when">
+                  <time datetime={g.startsAt}>{formatWhen(g.startsAt)}</time>
+                </p>
+                <p class="game-where">{venueLabel(g.venue)}</p>
+                <p class="game-who">
+                  {kinds[g.kind]} · posted by {g.hostName}
+                </p>
+                {g.note && <p class="game-note">{g.note}</p>}
+                {player && player.id !== g.hostId && (
+                  <form method="post" action={`/games/${g.id}/accept`}>
+                    <button
+                      class="button"
+                      type="submit"
+                      aria-label={`Accept ${g.hostName}'s game, ${formatWhen(g.startsAt)}`}
+                    >
+                      Accept
+                    </button>
+                  </form>
+                )}
+                {player?.id === g.hostId && (
+                  <form method="post" action={`/games/${g.id}/withdraw`}>
+                    <button
+                      class="button button-quiet"
+                      type="submit"
+                      aria-label={`Withdraw your game, ${formatWhen(g.startsAt)}`}
+                    >
+                      Withdraw
+                    </button>
+                  </form>
+                )}
+              </li>
+            ))}
+          </ul>
+        )
+      }
+    </section>
+
+    <section class="board" aria-labelledby="on-heading">
+      <h2 id="on-heading">Games on</h2>
+      {
+        on.length === 0 ? (
+          <p class="empty">Nothing agreed yet.</p>
+        ) : (
+          <ul class="games">
+            {on.map((g) => (
+              <li class="game">
+                <p class="game-when">
+                  <time datetime={g.startsAt}>{formatWhen(g.startsAt)}</time>
+                </p>
+                <p class="game-where">{venueLabel(g.venue)}</p>
+                <p class="game-who">
+                  <strong>{g.hostName}</strong> vs <strong>{g.guestName}</strong> · {kinds[g.kind]}
+                </p>
+                {g.note && <p class="game-note">{g.note}</p>}
+              </li>
+            ))}
+          </ul>
+        )
+      }
+    </section>
   </main>
 </Base>

@@ -16,15 +16,22 @@ const path = Astro.url.pathname;
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f5f5f7" />
+    <meta
+      name="description"
+      content="An unofficial board where ACT table tennis club members post a time and a table, and another member takes them up on it."
+    />
     <title>{title}</title>
   </head>
   <body>
-    <header class="site-header">
-      <a class="site-name" href="/">Find a game</a>
-      <nav aria-label="Site">
-        <a href="/" aria-current={path === "/" ? "page" : undefined}>Board</a>
-        <a href="/readme/" aria-current={path.startsWith("/readme") ? "page" : undefined}>About</a>
-      </nav>
+    <header class="global-nav">
+      <div class="nav-inner">
+        <a class="brand" href="/">Find a game</a>
+        <nav aria-label="Site">
+          <a href="/" aria-current={path === "/" ? "page" : undefined}>Board</a>
+          <a href="/readme/" aria-current={path.startsWith("/readme") ? "page" : undefined}>About</a>
+        </nav>
+      </div>
     </header>
     <slot />
     <footer class="site-footer">

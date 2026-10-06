@@ -10,7 +10,8 @@
     "typecheck": "astro check && tsc --noEmit",
     "check": "pnpm typecheck && pnpm test",
     "check:evidence": "node scripts/check-evidence.ts",
-    "test": "vitest run"
+    "test": "vitest run",
+    "db:generate": "drizzle-kit generate"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.10",
