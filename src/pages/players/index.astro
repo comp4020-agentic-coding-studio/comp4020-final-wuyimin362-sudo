@@ -1,0 +1,109 @@
+---
+// Finding someone to play, for members only. "Near you" is members who share
+// one of your usual venues, worked out from venues rather than anyone's
+// location, and a style filter finds, say, a defender to practise against.
+import Avatar from "../../components/Avatar.astro";
+import Base from "../../layouts/Base.astro";
+import { currentPlayer, isGuest } from "../../lib/players";
+import { findMembers, grips, styles, usualVenues } from "../../lib/profiles";
+import { states, venueLabel, venues } from "../../lib/venues";
+
+const viewer = currentPlayer(Astro.cookies);
+const allowed = viewer !== undefined && !isGuest(viewer);
+if (!allowed) Astro.response.status = 403;
+
+const mine = allowed ? usualVenues(viewer.id) : [];
+const params = Astro.url.searchParams;
+// with no filter chosen, members who've said where they play start "near"
+const venue = params.get("venue") ?? (mine.length > 0 ? "near" : "");
+const style = params.get("style") ?? "";
+const found = allowed ? findMembers(viewer.id, { venue, style }) : [];
+const kitLine = (m: (typeof found)[number]) =>
+  [m.grip && grips[m.grip], m.style && styles[m.style], m.blade].filter(Boolean).join(" · ");
+---
+
+<Base title="Players · Find a game">
+  <main class="wrap">
+    {
+      !allowed ? (
+        <section class="panel narrow-panel">
+          <h1>Members only</h1>
+          <p class="muted">
+            Finding players is for signed-in members. <a href="/login">Log in</a>, or <a href="/signup">make an account</a>.
+          </p>
+        </section>
+      ) : (
+        <>
+          <section class="hero hero-small">
+            <h1>Players.</h1>
+            <p class="lede">Find someone who plays where you do, or plays the style you want to practise against.</p>
+          </section>
+
+          <form method="get" action="/players" class="panel filter-form">
+            <label class="field">
+              <span>Where</span>
+              <select name="venue">
+                <option value="near" selected={venue === "near"}>
+                  Near you
+                </option>
+                <option value="" selected={venue === ""}>
+                  Anywhere
+                </option>
+                {states.map((state) => (
+                  <optgroup label={state}>
+                    {venues
+                      .filter((v) => v.state === state)
+                      .map((v) => (
+                        <option value={v.id} selected={venue === v.id}>
+                          {venueLabel(v.id)}
+                        </option>
+                      ))}
+                  </optgroup>
+                ))}
+              </select>
+            </label>
+            <label class="field">
+              <span>Style</span>
+              <select name="style">
+                <option value="">Any style</option>
+                {Object.entries(styles).map(([value, label]) => (
+                  <option value={value} selected={style === value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button class="button" type="submit">
+              Show players
+            </button>
+          </form>
+
+          {venue === "near" && mine.length === 0 ? (
+            <p class="empty">
+              "Near you" means people who share a venue with you. <a href="/profile">Add where you usually play</a> to
+              see them.
+            </p>
+          ) : found.length === 0 ? (
+            <p class="empty">Nobody matches yet. Try anywhere, or any style.</p>
+          ) : (
+            <ul class="games">
+              {found.map((m) => (
+                <li class="game player-card">
+                  <Avatar id={m.id} name={m.name} photoVersion={m.photoVersion} size={56} />
+                  <div>
+                    <p class="game-when">
+                      <a href={`/players/${m.id}`}>{m.name}</a>
+                    </p>
+                    <p class="game-who">@{m.username}</p>
+                    {kitLine(m) && <p class="game-who">{kitLine(m)}</p>}
+                    {m.venues.length > 0 && <p class="game-who">Plays at {m.venues.map(venueLabel).join("; ")}</p>}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
+      )
+    }
+  </main>
+</Base>

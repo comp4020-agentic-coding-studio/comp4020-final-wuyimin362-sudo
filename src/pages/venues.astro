@@ -1,0 +1,86 @@
+---
+// Every venue on the board, for anyone: where it is, when it's open, and how
+// many open games are there. A visitor can sort the list by distance, which is
+// worked out in their browser; the script has no way to send anything, and
+// spec/discovery.test.ts holds it to that.
+import Base from "../layouts/Base.astro";
+import { upcomingGames } from "../lib/games";
+import { mapUrl, states, venues } from "../lib/venues";
+
+const openAt = (id: string) => upcomingGames().filter((g) => g.status === "open" && g.venue === id).length;
+---
+
+<Base title="Venues · Find a game">
+  <main class="wrap">
+    <section class="hero hero-small">
+      <h1>Venues.</h1>
+      <p class="lede">Where club members play. Check times with the venue before you go.</p>
+    </section>
+
+    <div class="distance-tools">
+      <button class="button button-quiet" type="button" data-sort-distance hidden>Sort by distance from me</button>
+      <p class="muted" data-distance-status aria-live="polite"></p>
+    </div>
+
+    {
+      states.map((state) => (
+        <section class="board" aria-labelledby={`venues-${state}`}>
+          <h2 id={`venues-${state}`}>{state === "ACT" ? "In the ACT" : "Within reach in NSW"}</h2>
+          <ul class="games venue-list">
+            {venues
+              .filter((v) => v.state === state)
+              .map((v) => (
+                <li class="game" data-lat={v.lat} data-lng={v.lng}>
+                  <h3 class="game-when">{v.name}</h3>
+                  <p class="game-where">{v.address}</p>
+                  <p class="game-who">{v.sessions}</p>
+                  <p class="game-who">
+                    {openAt(v.id) === 1 ? "1 open game" : `${openAt(v.id)} open games`} ·{" "}
+                    <a href={mapUrl(v)}>Map</a>
+                    <span data-distance />
+                  </p>
+                </li>
+              ))}
+          </ul>
+        </section>
+      ))
+    }
+  </main>
+
+  <script is:inline>
+    // Sorting by distance, entirely on this device: it asks the browser where
+    // you are, measures to each venue, and reorders the lists. It sends nothing.
+    const button = document.querySelector("[data-sort-distance]");
+    const status = document.querySelector("[data-distance-status]");
+    const toRad = (deg) => (deg * Math.PI) / 180;
+    const kmBetween = (lat1, lng1, lat2, lng2) => {
+      const a =
+        Math.sin(toRad(lat2 - lat1) / 2) ** 2 +
+        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(toRad(lng2 - lng1) / 2) ** 2;
+      return 2 * 6371 * Math.asin(Math.sqrt(a));
+    };
+    if (button && status && "geolocation" in navigator) {
+      button.hidden = false;
+      button.addEventListener("click", () => {
+        status.textContent = "Finding where you are…";
+        navigator.geolocation.getCurrentPosition(
+          ({ coords }) => {
+            for (const list of document.querySelectorAll(".venue-list")) {
+              const items = [...list.children].map((item) => {
+                const km = kmBetween(coords.latitude, coords.longitude, Number(item.dataset.lat), Number(item.dataset.lng));
+                item.querySelector("[data-distance]").textContent = ` · ${km < 10 ? km.toFixed(1) : Math.round(km)} km away`;
+                return { item, km };
+              });
+              items.sort((a, b) => a.km - b.km).forEach(({ item }) => list.append(item));
+            }
+            status.textContent = "Nearest first. Your location stayed on this device.";
+          },
+          () => {
+            status.textContent = "Your location wasn't available, so the lists stay as they were.";
+          },
+          { maximumAge: 600000, timeout: 10000 },
+        );
+      });
+    }
+  </script>
+</Base>

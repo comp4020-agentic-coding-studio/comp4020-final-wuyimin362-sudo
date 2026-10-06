@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq, isNotNull, ne } from "drizzle-orm";
 import { db } from "./db";
 import type { Player } from "./players";
 import { avatars, homeVenues, players } from "./schema";
@@ -96,6 +96,50 @@ export async function savePhoto(playerId: string, file: FormDataEntryValue | nul
 export function photoOf(playerId: string) {
   return db.select().from(avatars).where(eq(avatars.playerId, playerId)).get();
 }
+
+// Other members, for finding someone to play. "near" means sharing one of the
+// viewer's usual venues, so it's worked out from venues, never from anyone's
+// location; "" means anywhere. A club is small enough to filter in memory.
+export function findMembers(viewerId: string, where: { venue: string; style: string }) {
+  const members = db
+    .select({
+      id: players.id,
+      name: players.name,
+      username: players.username,
+      grip: players.grip,
+      style: players.style,
+      blade: players.blade,
+    })
+    .from(players)
+    .where(and(isNotNull(players.username), ne(players.id, viewerId)))
+    .all();
+  const venuesOf = new Map<string, string[]>();
+  for (const { playerId, venue } of db.select().from(homeVenues).all()) {
+    venuesOf.set(playerId, [...(venuesOf.get(playerId) ?? []), venue]);
+  }
+  const photos = new Map(
+    db
+      .select({ playerId: avatars.playerId, updatedAt: avatars.updatedAt })
+      .from(avatars)
+      .all()
+      .map((p) => [p.playerId, p.updatedAt]),
+  );
+  const wanted =
+    where.venue === "near" ? new Set(venuesOf.get(viewerId)) : where.venue ? new Set([where.venue]) : undefined;
+  return members
+    .map((m) => ({ ...m, venues: venuesOf.get(m.id) ?? [], photoVersion: photos.get(m.id) ?? null }))
+    .filter((m) => !wanted || m.venues.some((v) => wanted.has(v)))
+    .filter((m) => !where.style || m.style === where.style)
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+export const usualVenues = (playerId: string) =>
+  db
+    .select({ venue: homeVenues.venue })
+    .from(homeVenues)
+    .where(eq(homeVenues.playerId, playerId))
+    .all()
+    .map((r) => r.venue);
 
 // "WL" for Wei Liang: what shows where a member has no photo.
 export function initials(name: string): string {

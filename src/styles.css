@@ -519,6 +519,48 @@ select:focus-visible {
   accent-color: var(--blue);
 }
 
+/* --- venues and players ------------------------------------------------ */
+.hero-small {
+  padding-bottom: 28px;
+}
+
+.distance-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  align-items: center;
+  margin: 0 0 24px;
+}
+
+.distance-tools p {
+  margin: 0;
+}
+
+.venue-list .game-when {
+  margin: 0;
+}
+
+.filter-form {
+  display: grid;
+  gap: 16px;
+  align-items: end;
+}
+
+.player-card {
+  flex-direction: row;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.player-card .avatar {
+  box-shadow: none;
+}
+
+.narrow-panel {
+  max-width: 560px;
+  margin: 48px auto;
+}
+
 /* --- the README, at /readme/ ------------------------------------------- */
 .prose {
   max-width: 692px;
@@ -633,6 +675,10 @@ select:focus-visible {
 
   .two-up {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .filter-form {
+    grid-template-columns: 1fr 1fr auto;
   }
 }
 
