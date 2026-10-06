@@ -16,8 +16,9 @@ rules, the README changes first, then the rule.
 - Count a match score that both players haven't confirmed, or present the
   app's rating as official. Ratings Central is the club's rating, and profiles
   link to it.
-- Let anyone review a player they haven't played in a confirmed match, or show
-  a style chart built from fewer than three reviews.
+- Let anyone review a player they haven't played in a confirmed match, or more
+  than once per match, or show a member's hexagon or review comments before
+  three different opponents have reviewed them.
 - Add a general chat. Messages live only inside an invitation between two
   players.
 - Present itself as Table Tennis ACT's, or take entries for official
