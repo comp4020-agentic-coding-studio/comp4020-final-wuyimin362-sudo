@@ -166,18 +166,16 @@ export async function join(name: string): Promise<Visitor> {
   return { cookie };
 }
 
-// Signs up a new member and returns their browser.
-export async function member(label: string): Promise<{ who: Visitor; name: string }> {
+// Signs up a new member and returns their browser, with the name and username
+// they signed up with.
+export async function member(label: string): Promise<{ who: Visitor; name: string; username: string }> {
   const id = crypto.randomUUID().slice(0, 8);
   const name = `Spec ${label} ${id}`;
+  const username = `spec_${label}_${id}`.slice(0, 20);
   const form = formWith(await visit("/signup", stranger), "username");
-  const res = await submit(
-    form,
-    { username: `spec_${label}_${id}`.slice(0, 20), name, password: `password ${id}` },
-    stranger,
-  );
+  const res = await submit(form, { username, name, password: `password ${id}` }, stranger);
   expect(res.status, "signing up a member").toBe(303);
-  return { who: { cookie: cookieFrom(res) }, name };
+  return { who: { cookie: cookieFrom(res) }, name, username };
 }
 
 export async function postGame(who: Visitor, note: string): Promise<void> {

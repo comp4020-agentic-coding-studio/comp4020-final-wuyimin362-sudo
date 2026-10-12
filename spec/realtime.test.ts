@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  formTo,
   formWith,
   gameWith,
   join,
@@ -20,8 +21,19 @@ import {
 // on server-sent event streams, and these checks listen on the same streams:
 // the board's, which anyone can open, and each game's, which only its two
 // players can. When two people take the same game at once, one gets it.
+//
+// A member also has a stream of their own, which nobody else can open, for
+// what waits on them or answers them: an invitation and its answer, a match
+// report and its confirmation.
 
 const SECOND = 1000;
+
+// A day back: in the past wherever this runs, so a match can be recorded on it.
+function yesterday(): string {
+  const d = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
 
 describe.skipIf(live)("real-time", () => {
   it("tells every open board within a second when a game is posted, and when it's taken", async () => {
@@ -91,5 +103,65 @@ describe.skipIf(live)("real-time", () => {
   it("has the board page actually listening", async () => {
     const board = [...(await visit("/", stranger)).querySelectorAll("script")].map((s) => s.textContent).join("\n");
     expect(board).toContain('new EventSource("/live/board")');
+  });
+
+  it("tells a member within a second when they're invited, the host when they answer, and nobody else", async () => {
+    const [host, invitee, outsider] = [await member("me_h"), await member("me_i"), await member("me_o")];
+    for (const visitor of [stranger, await join("Spec live guest")]) {
+      const shut = listen("/live/me", visitor);
+      expect(await shut.status, "a stream of your own is for signed-in members").toBe(403);
+      shut.close();
+    }
+    const hostEar = listen("/live/me", host.who);
+    const inviteeEar = listen("/live/me", invitee.who);
+    const outsiderEar = listen("/live/me", outsider.who);
+    for (const ear of [hostEar, inviteeEar, outsiderEar]) expect(await ear.status).toBe(200);
+
+    const note = `spec live invite ${crypto.randomUUID().slice(0, 8)}`;
+    const profile =
+      (await visit("/profile", invitee.who)).querySelector('a[href^="/players/"]')?.getAttribute("href") ?? "";
+    const offer = formWith(await visit(profile, host.who), "startsAt");
+    const invited = inviteeEar.nextChange(SECOND);
+    const overheard = outsiderEar.nextChange(SECOND);
+    expect((await submit(offer, { ...quickPicks(offer), startsAt: threeDaysOut(), note }, host.who)).status).toBe(303);
+    expect(await invited, "the invitee heard nothing within a second of being invited").toBeDefined();
+    expect(await overheard, "another member's stream heard about the invitation").toBeUndefined();
+
+    const decline = gameWith(await visit("/invites", invitee.who), note)?.querySelector('form[action$="/decline"]') as
+      | HTMLFormElement
+      | null;
+    if (!decline) throw new Error("no decline form for the invitation");
+    const answered = hostEar.nextChange(SECOND);
+    await submit(decline, {}, invitee.who);
+    expect(await answered, "the host heard nothing within a second of the answer").toBeDefined();
+    for (const ear of [hostEar, inviteeEar, outsiderEar]) ear.close();
+  });
+
+  it("tells the opponent within a second when a match is reported, and the reporter when it's confirmed", async () => {
+    const [reporter, opponent] = [await member("me_rep"), await member("me_opp")];
+    const reporterEar = listen("/live/me", reporter.who);
+    const opponentEar = listen("/live/me", opponent.who);
+    for (const ear of [reporterEar, opponentEar]) expect(await ear.status).toBe(200);
+
+    const report = formWith(await visit("/matches", reporter.who), "opponent");
+    const reported = opponentEar.nextChange(SECOND);
+    const fields = { ...quickPicks(report), opponent: opponent.username, playedOn: yesterday(), mine: "3", theirs: "1" };
+    expect((await submit(report, fields, reporter.who)).status, "recording the match").toBe(303);
+    expect(await reported, "the opponent heard nothing within a second of the report").toBeDefined();
+
+    const confirm = formTo(await visit("/matches", opponent.who), "/confirm");
+    const confirmed = reporterEar.nextChange(SECOND);
+    await submit(confirm, {}, opponent.who);
+    expect(await confirmed, "the reporter heard nothing within a second of the confirmation").toBeDefined();
+    reporterEar.close();
+    opponentEar.close();
+  });
+
+  it("has a member's pages listening for their own invitations and matches", async () => {
+    const { who } = await member("me_page");
+    for (const path of ["/", "/invites", "/matches"]) {
+      const scripts = [...(await visit(path, who)).querySelectorAll("script")].map((s) => s.textContent).join("\n");
+      expect(scripts, `${path} doesn't listen for the member's own changes`).toContain('new EventSource("/live/me")');
+    }
   });
 });
