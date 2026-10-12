@@ -59,11 +59,16 @@ rules, the README changes first, then the rule.
   own forms, using `spec/helpers.ts`.
 - Accepting a game stays one guarded update, so two people can't both take a
   game, and the first accept takes it (`docs/adr/0001-first-to-accept-takes-the-game.md`).
-  No queue or hold without a new decision record.
+  No queue or hold without a new decision record. Confirming or disputing a
+  match is the same: only the opponent, only while it's waiting.
 - Every change to a game or a message publishes its topic (`src/lib/live.ts`),
   and every page that shows one live subscribes to it. A stream carries only a
-  topic's name, never data, and a game's stream is its two players' alone. Confirming or disputing a match is the same: only the opponent, only
-  while it's waiting.
+  topic's name, never data, and a game's stream is its two players' alone.
+- A change that waits on a member or answers one (an invitation, a match report,
+  and their answers) also publishes each member's own topic, and every member's
+  page listens on their own stream, which the cookie picks and nobody else can
+  open (`docs/adr/0002-what-reaches-people-live.md`). Event interest, reviews
+  and profiles wait for a reload without a new decision record.
 - The club rating is replayed from confirmed matches every time it's shown.
   Never store a rating that could drift from the record.
 - Schema changes go through `pnpm db:generate` and a committed migration. An
