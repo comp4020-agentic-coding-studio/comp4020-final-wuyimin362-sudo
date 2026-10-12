@@ -128,6 +128,5 @@ answered within 52 ms, and a stranger was refused a game's stream.
 
 ## Next
 
-The README, which still says only the board is live and has to come down
-towards 600 words; the crit 9 reflection; and for crit 10, logging who did what
-and deciding who may see and change what.
+The README has to come down towards 600 words, and crit 10 needs logging of who
+did what and a decision about who may see and change what.
