@@ -8,7 +8,7 @@ A good version of this app gets two club members onto a table with as little eff
 
 **Trying it takes one field.** A guest gives the name people call them at the club, and the board marks them as a guest. Making an account adds a username and a password, so you can sign in from any device and keep what you've posted. There's no email address, which also means there's no password reset by email.
 
-**Games are agreed in the open, and live.** Every offer goes on the one board, where anyone can see who's playing where and when, and a change reaches every open board within about a second, no reload needed. Once someone takes a game it's theirs, and two people can't both take it: the first to accept gets it, for the reasons in [decision record 1](https://github.com/comp4020-agentic-coding-studio/comp4020-final-wuyimin362-sudo/blob/main/docs/adr/0001-first-to-accept-takes-the-game.md).
+**Games are agreed in the open, and live.** Every offer goes on the one board, where anyone can see who's playing where and when, and a change reaches every open board within about a second, no reload needed. Anything waiting on you arrives the same way: an invitation or a match report reaches you wherever you are in the app, and your answer reaches whoever is waiting, for the reasons in [decision record 2](https://github.com/comp4020-agentic-coding-studio/comp4020-final-wuyimin362-sudo/blob/main/docs/adr/0002-what-reaches-people-live.md). Once someone takes a game it's theirs, and two people can't both take it: the first to accept gets it, for the reasons in [decision record 1](https://github.com/comp4020-agentic-coding-studio/comp4020-final-wuyimin362-sudo/blob/main/docs/adr/0001-first-to-accept-takes-the-game.md).
 
 **You only meet at public venues.** The venue list is the venues Table Tennis ACT lists, plus a few NSW clubs within reach of Canberra. Nobody has to post a home address, and the app never stores where you are.
 
@@ -51,6 +51,7 @@ Checked by `spec/` on every push:
 - a direct invitation stays off the board until the invitee, and only the invitee, accepts it; a declined one never appears; a game's messages are readable and writable by its two players and nobody else (`spec/invites.test.ts`)
 - every event links to Table Tennis ACT's own page and the events page asks for nothing an entry would need; who's going, or looking for a partner, shows to members only (`spec/events.test.ts`)
 - every open board hears within a second that a game was posted or taken, a game's other player hears of a new message within a second while nobody else can listen, and when two people accept the same game at once exactly one gets it (`spec/realtime.test.ts`)
+- a member hears within a second of an invitation or a match report waiting on them, and of the answer to one they sent, on a stream nobody else can open (`spec/realtime.test.ts`)
 - this README is published at `/readme/` (`spec/invariants.test.ts`)
 
 Enforced in the code, with a check still to write: games can only be posted at listed venues, up to eight weeks ahead.
