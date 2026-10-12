@@ -1,6 +1,7 @@
 # 1. The first member to accept a game takes it
 
-Status: accepted, 7 October 2026, for crit 9 ("All at once").
+Status: accepted, 7 October 2026, for crit 9 ("All at once"). Reasons revised
+13 October 2026 to answer the README as it now reads; the decision is unchanged.
 
 ## Context
 
@@ -11,10 +12,11 @@ club night, several people can be looking at the same open game at once, and
 two of them can press Accept within the same second. Something has to decide
 who plays.
 
-The README sets the test for any answer. Good here means getting "two club
-members onto a table with as little effort as possible, without turning them
-into profiles to be judged", and it promises that "once someone takes a game
-it's theirs, and two people can't both take it".
+The README sets the test for any answer. It says a good version of this app
+"gets two club members onto a table with as little effort as possible, and
+helps them find the right opponent, without exposing more of anyone than the
+club already knows", and it promises that "once someone takes a game it's
+theirs, and two people can't both take it".
 
 ## Options
 
@@ -32,13 +34,15 @@ The first accept takes it.
 
 It's the least effort for both people, which is the first thing the README asks
 for: one press settles the game, and nobody waits for anyone to come back and
-decide. It also keeps the host from sorting applicants, which is exactly the
-judging of club-mates the README sets out to avoid; with option 2, a host would
-naturally pick by rating, photo or name. A host who does want a particular
-opponent already has a way that doesn't involve rejecting anyone: invite them
-directly from their profile. Option 3 solves a problem the board doesn't have,
-since a taken game can be talked about in its thread, and it would add timers
-and a game held by someone who has walked away.
+decide. The README also asks the app to help members find the right opponent,
+which is the best case for option 2. But choosing already has its own path: a
+member finds players who share their venues or play the style they want, and
+invites one directly from their profile. Option 2 would turn the board into a
+slower copy of that, where every game waits on its host. Keeping the board
+first-come keeps the two paths apart: the board is for anyone who's free, an
+invitation is for someone in particular. Option 3 solves a problem the board
+doesn't have, since a taken game can be talked about in its thread, and it would
+add timers and a game held by someone who has walked away.
 
 ## What it costs
 
@@ -46,7 +50,8 @@ and a game held by someone who has walked away.
   connection, can miss a game they wanted, and there's no queue to fall back on:
   they have to watch for the next one.
 - The host can't choose who turns up. If they mind, the answer is a direct
-  invitation, not the board.
+  invitation, not the board, and that takes an account: only members can see
+  profiles, so only members can invite.
 - Two people really can press Accept at once, and one of them will be told
   "someone took it". The live board makes that rare, because a taken game leaves
   every open board within about a second, but it can't make it impossible.
