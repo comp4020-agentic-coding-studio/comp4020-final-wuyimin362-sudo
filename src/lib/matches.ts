@@ -1,6 +1,7 @@
 import { and, asc, desc, eq, inArray, or } from "drizzle-orm";
 import { alias } from "drizzle-orm/sqlite-core";
 import { db } from "./db";
+import { publish } from "./live";
 import { isGuest, type Player } from "./players";
 import { matches, players } from "./schema";
 import { canberraNow } from "./time";
@@ -54,16 +55,21 @@ export function recordMatch(
       opponentGames: theirs,
     })
     .run();
+  // the opponent has a report waiting for them
+  publish(`player:${opponent.id}`, `player:${reporter.id}`);
 }
 
-// Only the opponent can answer a report, and only while it's waiting.
+// Only the opponent can answer a report, and only while it's waiting. The
+// reporter is waiting for the answer, so it reaches their own stream.
 function answer(id: number, player: Player, status: "confirmed" | "disputed"): MatchProblem | undefined {
-  const { changes } = db
+  const [answered] = db
     .update(matches)
     .set({ status, confirmedAt: status === "confirmed" ? new Date().toISOString() : null })
     .where(and(eq(matches.id, id), eq(matches.opponentId, player.id), eq(matches.status, "reported")))
-    .run();
-  return changes === 1 ? undefined : "gone";
+    .returning({ reporterId: matches.reporterId })
+    .all();
+  if (!answered) return "gone";
+  publish(`player:${answered.reporterId}`, `player:${player.id}`);
 }
 
 export const confirmMatch = (id: number, player: Player) => answer(id, player, "confirmed");

@@ -74,42 +74,44 @@ const gameCounts = ["0", "1", "2", "3", "4"];
     {done && <p class="notice" role="status">{done}</p>}
     {problem && <p class="notice notice-problem" role="alert">{problem}</p>}
 
-    {
-      toAnswer.length > 0 && (
-        <section class="board" aria-labelledby="answer-heading">
-          <h2 id="answer-heading">Waiting for you</h2>
-          <ul class="games single">
-            {toAnswer.map((m) => (
-              <li class="game">
-                <p class="game-when">{formatDay(m.playedOn)}</p>
-                <p class="game-where">{venueLabel(m.venue)}</p>
-                <p class="game-who">
-                  {m.reporterGames > m.opponentGames
-                    ? `${m.reporterName} says they won ${m.reporterGames}–${m.opponentGames}.`
-                    : `${m.reporterName} says you won ${m.opponentGames}–${m.reporterGames}.`}
-                </p>
-                <div class="actions">
-                  <form method="post" action={`/matches/${m.id}/confirm`}>
-                    <button class="button" type="submit" aria-label={`Confirm the match against ${m.reporterName}`}>
-                      Confirm
-                    </button>
-                  </form>
-                  <form method="post" action={`/matches/${m.id}/dispute`}>
-                    <button
-                      class="button button-quiet"
-                      type="submit"
-                      aria-label={`Dispute the match against ${m.reporterName}`}
-                    >
-                      Dispute
-                    </button>
-                  </form>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )
-    }
+    <div id="matches-waiting-for-you" data-live-area>
+      {
+        toAnswer.length > 0 && (
+          <section class="board" aria-labelledby="answer-heading">
+            <h2 id="answer-heading">Waiting for you</h2>
+            <ul class="games single">
+              {toAnswer.map((m) => (
+                <li class="game">
+                  <p class="game-when">{formatDay(m.playedOn)}</p>
+                  <p class="game-where">{venueLabel(m.venue)}</p>
+                  <p class="game-who">
+                    {m.reporterGames > m.opponentGames
+                      ? `${m.reporterName} says they won ${m.reporterGames}–${m.opponentGames}.`
+                      : `${m.reporterName} says you won ${m.opponentGames}–${m.reporterGames}.`}
+                  </p>
+                  <div class="actions">
+                    <form method="post" action={`/matches/${m.id}/confirm`}>
+                      <button class="button" type="submit" aria-label={`Confirm the match against ${m.reporterName}`}>
+                        Confirm
+                      </button>
+                    </form>
+                    <form method="post" action={`/matches/${m.id}/dispute`}>
+                      <button
+                        class="button button-quiet"
+                        type="submit"
+                        aria-label={`Dispute the match against ${m.reporterName}`}
+                      >
+                        Dispute
+                      </button>
+                    </form>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )
+      }
+    </div>
 
     <section class="panel" aria-labelledby="record-heading">
       <h2 id="record-heading">Record a match</h2>
@@ -167,23 +169,25 @@ const gameCounts = ["0", "1", "2", "3", "4"];
       </form>
     </section>
 
-    {
-      ownReports.length > 0 && (
-        <section class="panel" aria-labelledby="own-heading">
-          <h2 id="own-heading">Waiting on your opponents</h2>
-          <ul class="plain-list">
-            {ownReports.map((m) => (
-              <li>
-                {formatDay(m.playedOn)}: {m.reporterGames}–{m.opponentGames} against {m.opponentName},{" "}
-                {m.status === "disputed" ? "disputed, so it won't count" : "waiting for them to confirm"}
-              </li>
-            ))}
-          </ul>
-        </section>
-      )
-    }
+    <div id="matches-own-reports" data-live-area>
+      {
+        ownReports.length > 0 && (
+          <section class="panel" aria-labelledby="own-heading">
+            <h2 id="own-heading">Waiting on your opponents</h2>
+            <ul class="plain-list">
+              {ownReports.map((m) => (
+                <li>
+                  {formatDay(m.playedOn)}: {m.reporterGames}–{m.opponentGames} against {m.opponentName},{" "}
+                  {m.status === "disputed" ? "disputed, so it won't count" : "waiting for them to confirm"}
+                </li>
+              ))}
+            </ul>
+          </section>
+        )
+      }
+    </div>
 
-    <section class="panel" aria-labelledby="history-heading">
+    <section class="panel" id="matches-record" data-live-area aria-labelledby="history-heading">
       <h2 id="history-heading">Your record</h2>
       {
         record.length === 0 ? (

@@ -9,7 +9,9 @@ import { EventEmitter } from "node:events";
 const bus = new EventEmitter();
 bus.setMaxListeners(0);
 
-export type Topic = "board" | `game:${number}`;
+// The board, one game, or one member. A member's own topic carries what waits
+// on them or answers them: an invitation, a match report.
+export type Topic = "board" | `game:${number}` | `player:${string}`;
 
 export function publish(...topics: Topic[]): void {
   for (const topic of topics) bus.emit(topic);

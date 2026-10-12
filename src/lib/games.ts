@@ -1,7 +1,7 @@
 import { and, asc, eq, gt, inArray, isNotNull, isNull, ne, notInArray, or } from "drizzle-orm";
 import { alias } from "drizzle-orm/sqlite-core";
 import { db } from "./db";
-import { publish } from "./live";
+import { publish, type Topic } from "./live";
 import { isGuest, type Player } from "./players";
 import { games, players } from "./schema";
 import { addDays, canberraNow, isWallClock } from "./time";
@@ -80,6 +80,13 @@ export const invitationsFrom = (playerId: string) =>
 
 export const gameById = (id: number) => gamesWhere(eq(games.id, id))[0];
 
+// An invitation waits on its invitee and answers to its host, so a change to
+// one reaches both their own streams as well as the game's.
+function invitationTopics(id: number): Topic[] {
+  const game = gameById(id);
+  return game?.invitedId ? [`player:${game.hostId}`, `player:${game.invitedId}`] : [];
+}
+
 function checkOffer(offer: Offer): Problem | undefined {
   const now = canberraNow();
   if (!isWallClock(offer.startsAt) || offer.startsAt <= now) return "time";
@@ -120,6 +127,7 @@ export function inviteTo(player: Player, inviteeId: string, offer: Offer): Probl
       note: offer.note.trim(),
     })
     .run();
+  publish(`player:${invitee.id}`, `player:${player.id}`);
 }
 
 // Taking a game is one guarded update: it only lands while the game is still
@@ -142,7 +150,7 @@ export function acceptGame(id: number, player: Player): Problem | undefined {
     )
     .run();
   if (changes !== 1) return "gone";
-  publish("board", `game:${id}`);
+  publish("board", `game:${id}`, ...invitationTopics(id));
 }
 
 // Only the member invited can decline, and only while it's waiting.
@@ -153,7 +161,7 @@ export function declineInvitation(id: number, player: Player): Problem | undefin
     .where(and(eq(games.id, id), eq(games.invitedId, player.id), eq(games.status, "open")))
     .run();
   if (changes !== 1) return "gone";
-  publish(`game:${id}`);
+  publish(`game:${id}`, ...invitationTopics(id));
 }
 
 // Only the host can withdraw, and only while nobody has taken the game.
@@ -164,5 +172,5 @@ export function withdrawGame(id: number, player: Player): Problem | undefined {
     .where(and(eq(games.id, id), eq(games.hostId, player.id), inArray(games.status, ["open"])))
     .run();
   if (changes !== 1) return "gone";
-  publish("board", `game:${id}`);
+  publish("board", `game:${id}`, ...invitationTopics(id));
 }

@@ -62,7 +62,7 @@ const invited = player && !isGuest(player) ? invitationsFor(player.id).length : 
                 {isGuest(player) ? (
                   <a href="/signup">Make an account</a>
                 ) : (
-                  <a href="/invites" aria-current={path === "/invites" ? "page" : undefined}>
+                  <a href="/invites" data-live-count="invites" aria-current={path === "/invites" ? "page" : undefined}>
                     Invites
                     {invited > 0 && (
                       <>
@@ -73,7 +73,7 @@ const invited = player && !isGuest(player) ? invitationsFor(player.id).length : 
                   </a>
                 )}
                 {!isGuest(player) && (
-                  <a href="/matches" aria-current={path === "/matches" ? "page" : undefined}>
+                  <a href="/matches" data-live-count="matches" aria-current={path === "/matches" ? "page" : undefined}>
                     Matches
                     {waiting > 0 && (
                       <>
@@ -107,5 +107,64 @@ const invited = player && !isGuest(player) ? invitationsFor(player.id).length : 
     <footer class="site-footer">
       <p>An unofficial board for ACT table tennis club members. It isn't run by the club.</p>
     </footer>
+    {
+      player && !isGuest(player) && (
+        <>
+          <p class="visually-hidden" aria-live="polite" data-live-me-status></p>
+          <script is:inline>
+            // A member's own changes stay live on every page: an invitation or
+            // a match report waiting on them, or the answer to one they sent,
+            // arrives on their own stream, and the page fetches itself again
+            // to take the header's fresh counts and swap in any list marked
+            // data-live-area. Forms are left alone, so nothing half-typed is
+            // lost. Without JavaScript the counts and lists catch up on the
+            // next page load.
+            (() => {
+              if (!("EventSource" in window)) return;
+              const status = document.querySelector("[data-live-me-status]");
+              let busy = false;
+              let again = false;
+              const refresh = async () => {
+                if (busy) {
+                  again = true;
+                  return;
+                }
+                busy = true;
+                try {
+                  const res = await fetch(location.pathname, { headers: { accept: "text/html" } });
+                  if (!res.ok) return;
+                  const fresh = new DOMParser().parseFromString(await res.text(), "text/html");
+                  // the links stay put, so focus stays on them; only their counts change
+                  for (const link of document.querySelectorAll("[data-live-count]")) {
+                    const next = fresh.querySelector('[data-live-count="' + link.dataset.liveCount + '"]');
+                    if (next) link.innerHTML = next.innerHTML;
+                  }
+                  for (const area of document.querySelectorAll("[data-live-area]")) {
+                    const next = fresh.getElementById(area.id);
+                    if (next) area.replaceWith(next);
+                  }
+                  if (status) status.textContent = "Your invites or matches just changed.";
+                } catch {
+                  // the next change, or a reload, catches up
+                } finally {
+                  busy = false;
+                  if (again) {
+                    again = false;
+                    refresh();
+                  }
+                }
+              };
+              const source = new EventSource("/live/me");
+              let opened = false;
+              source.addEventListener("change", refresh);
+              source.addEventListener("open", () => {
+                if (opened) refresh();
+                opened = true;
+              });
+            })();
+          </script>
+        </>
+      )
+    }
   </body>
 </html>

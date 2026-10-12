@@ -38,7 +38,7 @@ const standing = (status: string) =>
     {done && <p class="notice" role="status">{done}</p>}
     {problem && <p class="notice notice-problem" role="alert">{problem}</p>}
 
-    <section class="board" aria-labelledby="for-you-heading">
+    <section class="board" id="invites-for-you" data-live-area aria-labelledby="for-you-heading">
       <h2 id="for-you-heading">For you</h2>
       {
         forYou.length === 0 ? (
@@ -77,7 +77,7 @@ const standing = (status: string) =>
       }
     </section>
 
-    <section class="board" aria-labelledby="sent-heading">
+    <section class="board" id="invites-sent" data-live-area aria-labelledby="sent-heading">
       <h2 id="sent-heading">You sent</h2>
       {
         sent.length === 0 ? (
