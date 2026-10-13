@@ -14,7 +14,7 @@ import {
 } from "../../lib/matches";
 import { currentPlayer, isGuest } from "../../lib/players";
 import { reviewedBy } from "../../lib/reviews";
-import { formatDay } from "../../lib/time";
+import { daysBack, formatDay } from "../../lib/time";
 import { states, venueLabel, venues } from "../../lib/venues";
 
 const player = currentPlayer(Astro.cookies);
@@ -39,6 +39,8 @@ const pick = (messages: Record<string, string>, key: string | null) =>
   key && Object.hasOwn(messages, key) ? messages[key] : undefined;
 
 const range = recordWindow();
+// a list rather than the browser's own date picker, which speaks the browser's language
+const recordDays = daysBack(RECORD_DAYS);
 let problem = pick(problems, Astro.url.searchParams.get("problem"));
 let values = { opponent: "", playedOn: range.max, venue: "", mine: "3", theirs: "0" };
 if (Astro.request.method === "POST") {
@@ -123,7 +125,13 @@ const gameCounts = ["0", "1", "2", "3", "4"];
         <div class="two-up">
           <label class="field">
             <span>Played on</span>
-            <input type="date" name="playedOn" required min={range.min} max={range.max} value={values.playedOn} />
+            <select name="playedOn" required>
+              {recordDays.map((day, i) => (
+                <option value={day} selected={values.playedOn === day}>
+                  {i === 0 ? `Today, ${formatDay(day)}` : i === 1 ? `Yesterday, ${formatDay(day)}` : formatDay(day)}
+                </option>
+              ))}
+            </select>
           </label>
           <label class="field">
             <span>Where</span>

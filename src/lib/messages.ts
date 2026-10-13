@@ -11,6 +11,15 @@ import { messages, players } from "./schema";
 // thread.
 export const MESSAGE_MAX = 500;
 
+// Replies sent in one press, for the things two players arranging a game
+// actually say. They're ordinary messages: the same check, the same thread.
+export const quickReplies = [
+  "🏓 On my way",
+  "Running 10 minutes late",
+  "I've got us a table",
+  "See you there 👍",
+] as const;
+
 export function threadFor(gameId: number, player: Pick<Player, "id">) {
   const game = gameById(gameId);
   if (!game) return undefined;

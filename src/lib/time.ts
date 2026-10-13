@@ -56,6 +56,39 @@ export function formatDay(date: string): string {
   }).format(new Date(`${date}T00:00:00Z`));
 }
 
+// The days a game can be posted for, today first, as YYYY-MM-DD, for a day
+// picker that reads the same in every browser's language.
+export function daysAhead(count: number): string[] {
+  const today = canberraNow().slice(0, 10);
+  return Array.from({ length: count + 1 }, (_, i) => addDays(`${today}T00:00`, i).slice(0, 10));
+}
+
+// The days a match can be recorded for, today first, going back.
+export function daysBack(count: number): string[] {
+  const today = canberraNow().slice(0, 10);
+  return Array.from({ length: count + 1 }, (_, i) => addDays(`${today}T00:00`, -i).slice(0, 10));
+}
+
+// Every quarter of an hour, as HH:mm, for a time picker.
+export const quarterHours = Array.from({ length: 96 }, (_, i) => {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${pad(Math.floor(i / 4))}:${pad((i % 4) * 15)}`;
+});
+
+// "7:30 pm", from HH:mm.
+export function formatClock(time: string): string {
+  return new Intl.DateTimeFormat("en-AU", { timeZone: "UTC", hour: "numeric", minute: "2-digit" }).format(
+    new Date(`2000-01-01T${time}:00Z`),
+  );
+}
+
+// A game's time from the form: one wall-clock field when a script sends it,
+// otherwise the day and time pickers the page shows. Either way it stays a
+// Canberra wall-clock string, never converted.
+export function wallClockFrom(field: (name: string) => string): string {
+  return field("startsAt") || `${field("startsDay")}T${field("startsTime")}`;
+}
+
 // "Thu 8 Oct, 7:00 pm", read straight off the wall clock.
 export function formatWhen(wallClock: string): string {
   const at = asUtc(wallClock);

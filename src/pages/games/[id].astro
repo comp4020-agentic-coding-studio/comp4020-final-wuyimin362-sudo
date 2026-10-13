@@ -1,12 +1,19 @@
 ---
-// A game's own page: what's agreed, and the short thread between its two
-// players. Anyone else gets a 403, and the thread isn't even read for them.
+// A game's conversation, between its two players and nobody else: the game
+// pinned at the top, the messages as bubbles, and a box to write in at the
+// bottom, with replies that send in one press. A member can open the other
+// player's card from their picture. Anyone else gets a 403, and the thread
+// isn't even read for them. Everything works without JavaScript, after a
+// reload; with it, the thread stays live and keeps to the latest message.
+import Avatar from "../../components/Avatar.astro";
+import PlayerCard from "../../components/PlayerCard.astro";
 import PlayerName from "../../components/PlayerName.astro";
 import Base from "../../layouts/Base.astro";
 import { kinds } from "../../lib/games";
-import { MESSAGE_MAX, messagesOf, threadFor } from "../../lib/messages";
-import { currentPlayer } from "../../lib/players";
-import { formatMoment, formatWhen } from "../../lib/time";
+import { MESSAGE_MAX, messagesOf, quickReplies, threadFor } from "../../lib/messages";
+import { currentPlayer, isGuest } from "../../lib/players";
+import { profileOf } from "../../lib/profiles";
+import { canberraNow, formatDay, formatWhen } from "../../lib/time";
 import { venueLabel } from "../../lib/venues";
 
 const player = currentPlayer(Astro.cookies);
@@ -25,85 +32,219 @@ const standing = game
         ? "Withdrawn"
         : "Waiting for an answer"
   : "";
+
+// the other player, however they came to the game
+const other = game
+  ? game.hostId === player?.id
+    ? { id: game.guestId ?? game.invitedId ?? "", name: game.guestName ?? game.invitedName ?? "" }
+    : { id: game.hostId, name: game.hostName }
+  : undefined;
+const otherProfile = other ? profileOf(other.id) : undefined;
+// a member may open another member's card, as they may open their profile;
+// a guest may not, and a guest has no card to open
+const showsCard = player !== undefined && !isGuest(player) && otherProfile !== undefined;
+const cardId = "player-card";
+const photoOf = (authorId: string) => (authorId === other?.id ? (otherProfile?.photoVersion ?? null) : null);
+
+// Canberra's day for a SQLite UTC timestamp, "YYYY-MM-DD HH:MM:SS"
+const ZONE = "Australia/Sydney";
+const canberraDay = (utc: string) =>
+  new Intl.DateTimeFormat("en-CA", { timeZone: ZONE, year: "numeric", month: "2-digit", day: "2-digit" }).format(
+    new Date(`${utc.replace(" ", "T")}Z`),
+  );
+const clockOf = (utc: string) =>
+  new Intl.DateTimeFormat("en-AU", { timeZone: ZONE, hour: "numeric", minute: "2-digit" }).format(
+    new Date(`${utc.replace(" ", "T")}Z`),
+  );
+const today = canberraNow().slice(0, 10);
+const yesterday = new Date(Date.parse(`${today}T00:00:00Z`) - 86_400_000).toISOString().slice(0, 10);
+const dayLabel = (day: string) => (day === today ? "Today" : day === yesterday ? "Yesterday" : formatDay(day));
+
+// Messages in runs: a new run starts with a new day, a new author, or a pause
+// of more than five minutes, so a burst from one person reads as one.
+type Message = (typeof thread)[number];
+const runs: { day?: string; authorId: string; authorName: string; mine: boolean; messages: Message[] }[] = [];
+for (const m of thread) {
+  const day = canberraDay(m.createdAt);
+  const last = runs.at(-1);
+  const lastMessage = last?.messages.at(-1);
+  const sameDay = lastMessage !== undefined && canberraDay(lastMessage.createdAt) === day;
+  const soon =
+    lastMessage !== undefined &&
+    Date.parse(`${m.createdAt.replace(" ", "T")}Z`) - Date.parse(`${lastMessage.createdAt.replace(" ", "T")}Z`) <=
+      5 * 60_000;
+  if (last && sameDay && last.authorId === m.authorId && soon) {
+    last.messages.push(m);
+  } else {
+    runs.push({
+      day: sameDay ? undefined : day,
+      authorId: m.authorId,
+      authorName: m.authorName,
+      mine: m.authorId === player?.id,
+      messages: [m],
+    });
+  }
+}
+const lastId = thread.at(-1)?.id;
 ---
 
-<Base title="Game · Find a game">
-  <main class="wrap narrow">
+<Base title={other ? `${other.name} · Find a game` : "Game · Find a game"}>
+  <main class="wrap chat-page">
     {
       !game ? (
-        <section class="panel">
+        <section class="panel narrow-panel">
           <h1>Not your game</h1>
           <p class="muted">
             A game's messages are for its two players only. <a href="/">Back to the board</a>
           </p>
         </section>
       ) : (
-        <>
-          <section class="panel" aria-labelledby="game-heading">
-            <h1 id="game-heading">{formatWhen(game.startsAt)}</h1>
-            <p class="muted" id="game-status">
-              {venueLabel(game.venue)} · {kinds[game.kind]} · {standing}
-            </p>
-            <p>
-              <PlayerName id={game.hostId} name={game.hostName} username={game.hostUsername} />
-              {" and "}
-              {game.guestId ? (
-                <PlayerName id={game.guestId} name={game.guestName ?? ""} username={game.guestUsername} />
-              ) : (
-                <a href={`/players/${game.invitedId}`}>{game.invitedName}</a>
-              )}
-            </p>
-            {game.note && <p class="game-note">{game.note}</p>}
-          </section>
+        <section class="chat" aria-labelledby="chat-heading">
+          <header class="chat-head">
+            {showsCard ? (
+              <button class="avatar-button" type="button" popovertarget={cardId} aria-label={`${other?.name}'s card`}>
+                <Avatar id={other!.id} name={other!.name} photoVersion={otherProfile!.photoVersion} size={44} />
+              </button>
+            ) : (
+              <Avatar id={other?.id ?? ""} name={other?.name ?? ""} photoVersion={null} size={44} />
+            )}
+            <div class="chat-title">
+              <h1 id="chat-heading">
+                {otherProfile ? (
+                  <PlayerName id={other!.id} name={other!.name} username={otherProfile.username} />
+                ) : (
+                  <PlayerName id={other?.id ?? ""} name={other?.name ?? ""} username={null} />
+                )}
+              </h1>
+              <p class="muted" id="game-status">
+                <time datetime={game.startsAt}>{formatWhen(game.startsAt)}</time> · {venueLabel(game.venue)} ·{" "}
+                {kinds[game.kind]} · {standing}
+              </p>
+            </div>
+          </header>
+          {showsCard && <PlayerCard playerId={other!.id} cardId={cardId} />}
+          {game.note && <p class="chat-note">{game.note}</p>}
+          <p class="chat-private muted">Only the two of you can read these.</p>
 
-          <section class="panel" aria-labelledby="thread-heading">
-            <h2 id="thread-heading">Messages</h2>
-            <p class="muted">Only the two of you can read these.</p>
-            <div id="thread-area">
+          <div class="chat-scroll" data-chat-scroll tabindex="0" aria-label="Messages">
+            <div id="thread-area" data-last={lastId}>
               {thread.length === 0 ? (
-                <p class="muted">Nothing yet.</p>
+                <p class="chat-empty muted">No messages yet. Say hello, or send a quick reply below.</p>
               ) : (
-                <ol class="thread">
-                  {thread.map((m, i) => (
-                    <li class={m.authorId === player?.id ? "mine" : undefined} id={i === thread.length - 1 ? "latest" : undefined}>
-                      <p class="thread-meta">
-                        {m.authorName} · {formatMoment(m.createdAt)}
-                      </p>
-                      <p>{m.body}</p>
-                    </li>
+                <ol class="bubbles">
+                  {runs.map((run) => (
+                    <>
+                      {run.day && (
+                        <li class="day-mark" aria-hidden="true">
+                          <span>{dayLabel(run.day)}</span>
+                        </li>
+                      )}
+                      <li class={run.mine ? "run mine" : "run"}>
+                        {!run.mine && (
+                          <span class="run-avatar">
+                            <Avatar
+                              id={run.authorId}
+                              name={run.authorName}
+                              photoVersion={showsCard ? photoOf(run.authorId) : null}
+                              size={32}
+                            />
+                          </span>
+                        )}
+                        <div class="run-body">
+                          <p class="visually-hidden">{run.mine ? "You" : run.authorName}:</p>
+                          {run.messages.map((m) => (
+                            <p class="bubble" id={m.id === lastId ? "latest" : undefined}>
+                              {m.body}
+                            </p>
+                          ))}
+                          <p class="run-time">{clockOf(run.messages.at(-1)!.createdAt)}</p>
+                        </div>
+                      </li>
+                    </>
                   ))}
                 </ol>
               )}
             </div>
-            {problem && (
-              <p class="notice notice-problem" role="alert">
-                {problem}
-              </p>
-            )}
-            <form method="post" action={`/games/${id}/messages`} class="stack-form">
-              <label class="field">
-                <span>Your message</span>
-                <textarea name="body" required maxlength={MESSAGE_MAX} rows="3"></textarea>
-              </label>
-              <button class="button" type="submit">
-                Send
+          </div>
+          <button class="new-below button" type="button" data-new-below hidden>
+            New messages ↓
+          </button>
+
+          {problem && (
+            <p class="notice notice-problem" role="alert">
+              {problem}
+            </p>
+          )}
+          <form method="post" action={`/games/${id}/messages`} class="quick-replies" aria-label="Quick replies">
+            {quickReplies.map((reply) => (
+              <button class="chip-button" type="submit" name="body" value={reply}>
+                {reply}
               </button>
-            </form>
-          </section>
-        </>
+            ))}
+          </form>
+          <form method="post" action={`/games/${id}/messages`} class="composer" data-composer>
+            <label class="field composer-field">
+              <span>Your message</span>
+              <textarea name="body" required maxlength={MESSAGE_MAX} rows="1" data-autogrow></textarea>
+            </label>
+            <button class="button composer-send" type="submit">
+              Send
+            </button>
+          </form>
+        </section>
       )
     }
     <p class="visually-hidden" aria-live="polite" data-live-status></p>
   </main>
 
   <script define:vars={{ stream: game ? `/live/games/${id}` : "" }}>
-    // A game's page stays live for its two players: a new message, or the game
-    // being accepted, declined or withdrawn, arrives on the game's own stream,
-    // and the page fetches itself again and swaps in the thread and the game's
-    // standing. After a dropped connection it catches up once it reconnects.
+    // A game's conversation stays live for its two players: a new message, or
+    // the game being accepted, declined or withdrawn, arrives on the game's own
+    // stream, and the page fetches itself again and swaps in the thread and the
+    // game's standing. It opens at the latest message and follows new ones,
+    // unless the reader has scrolled back to read, when it offers a way down
+    // instead of pulling them away. After a dropped connection it catches up
+    // once it reconnects.
     (() => {
-      if (!stream || !("EventSource" in window)) return;
+      const scroller = document.querySelector("[data-chat-scroll]");
+      const below = document.querySelector("[data-new-below]");
       const status = document.querySelector("[data-live-status]");
+      const box = document.querySelector("[data-autogrow]");
+      const composer = document.querySelector("[data-composer]");
+      if (!scroller) return;
+
+      const atBottom = () => scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight < 48;
+      const toBottom = () => {
+        scroller.scrollTop = scroller.scrollHeight;
+        if (below) below.hidden = true;
+      };
+      toBottom();
+      scroller.addEventListener("scroll", () => {
+        if (atBottom() && below) below.hidden = true;
+      });
+      below?.addEventListener("click", () => {
+        toBottom();
+        scroller.focus();
+      });
+
+      // the box grows with what's written, up to a few lines, and Enter sends
+      // while Shift+Enter starts a new line
+      if (box) {
+        const grow = () => {
+          box.style.height = "auto";
+          box.style.height = `${Math.min(box.scrollHeight, 160)}px`;
+        };
+        box.addEventListener("input", grow);
+        box.addEventListener("keydown", (e) => {
+          if (e.key === "Enter" && !e.shiftKey && !e.isComposing) {
+            e.preventDefault();
+            if (box.value.trim()) composer?.requestSubmit();
+          }
+        });
+        if (location.hash === "#latest") box.focus();
+      }
+
+      if (!stream || !("EventSource" in window)) return;
       let busy = false;
       let again = false;
       const refresh = async () => {
@@ -113,12 +254,19 @@ const standing = game
         }
         busy = true;
         try {
+          const following = atBottom();
+          const before = document.getElementById("thread-area")?.dataset.last;
           const res = await fetch(location.pathname, { headers: { accept: "text/html" } });
           const fresh = new DOMParser().parseFromString(await res.text(), "text/html");
           for (const id of ["thread-area", "game-status"]) {
             const next = fresh.getElementById(id);
             const current = document.getElementById(id);
             if (next && current) current.replaceWith(next);
+          }
+          const after = document.getElementById("thread-area")?.dataset.last;
+          if (after !== before) {
+            if (following) toBottom();
+            else if (below) below.hidden = false;
           }
           if (status) status.textContent = "The conversation just changed.";
         } catch {

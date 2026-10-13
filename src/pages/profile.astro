@@ -60,13 +60,38 @@ const profile = profileOf(player.id)!;
     <section class="panel" aria-labelledby="photo-heading">
       <h2 id="photo-heading">Photo</h2>
       <form method="post" action="/profile/photo" enctype="multipart/form-data" class="stack-form">
-        <label class="field">
-          <span>Choose a photo</span>
-          <input type="file" name="photo" accept="image/jpeg,image/png,image/webp" required aria-describedby="photo-hint" />
+        <div class="field">
+          {/* the browser's own chooser speaks the browser's language, so it hides
+              behind an English label that opens it; keyboards and screen
+              readers still reach the input itself */}
+          <input
+            id="photo"
+            class="visually-hidden file-input"
+            type="file"
+            name="photo"
+            accept="image/jpeg,image/png,image/webp"
+            required
+            aria-describedby="photo-hint photo-chosen"
+          />
+          <div class="file-pick">
+            <label for="photo" class="button button-quiet">Choose a photo</label>
+            <span id="photo-chosen" class="muted" aria-live="polite">No photo chosen</span>
+          </div>
           <small id="photo-hint">JPEG, PNG or WebP, up to 1 MB.</small>
-        </label>
+        </div>
         <button class="button" type="submit">Upload photo</button>
       </form>
+      <script is:inline>
+        // Shows the chosen file's name in English. Without JavaScript the
+        // upload still works; only the name doesn't show.
+        (() => {
+          const input = document.getElementById("photo");
+          const chosen = document.getElementById("photo-chosen");
+          input?.addEventListener("change", () => {
+            if (chosen) chosen.textContent = input.files?.[0]?.name ?? "No photo chosen";
+          });
+        })();
+      </script>
     </section>
 
     <section class="panel" aria-labelledby="game-heading">

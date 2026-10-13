@@ -1,0 +1,106 @@
+---
+// The card behind another member's picture in a game's conversation: what
+// their profile shows, in brief, and a way to it. It holds to the profile's
+// own limits, since it is the profile in small: only a member sees it, a guest
+// has none, and the opponents' view waits for three different opponents. It
+// opens as a popover, which needs no JavaScript.
+import { ratings, recordOf } from "../lib/matches";
+import { grips, profileOf, ratingsCentralUrl, styles } from "../lib/profiles";
+import { HEXAGON_AFTER, standingOf, strengthsFrom } from "../lib/reviews";
+import { formatDay } from "../lib/time";
+import Avatar from "./Avatar.astro";
+import Hexagon from "./Hexagon.astro";
+
+interface Props {
+  playerId: string;
+  // whose card it is, as the page knows them, for the popover's own id
+  cardId: string;
+}
+
+const { playerId, cardId } = Astro.props;
+const profile = profileOf(playerId);
+const standing = profile ? ratings().get(profile.id) : undefined;
+const record = profile ? recordOf(profile.id, 3) : [];
+const opinions = profile ? standingOf(profile.id) : undefined;
+const strengths = opinions?.shown ? strengthsFrom(opinions.averages) : [];
+const howTheyPlay = profile
+  ? [profile.grip && grips[profile.grip], profile.style && styles[profile.style]].filter(Boolean).join(" · ")
+  : "";
+const kit = profile ? [profile.blade, profile.forehand, profile.backhand].filter(Boolean).join(" · ") : "";
+---
+
+{
+  profile && (
+    <div id={cardId} class="player-card-pop" popover data-player-card aria-label={`${profile.name}'s card`}>
+      <div class="card-head">
+        <Avatar id={profile.id} name={profile.name} photoVersion={profile.photoVersion} size={56} />
+        <div>
+          <p class="card-name">{profile.name}</p>
+          <p class="muted">
+            @{profile.username}
+            {howTheyPlay && ` · ${howTheyPlay}`}
+          </p>
+        </div>
+        <button class="card-close" type="button" popovertarget={cardId} popovertargetaction="hide" aria-label="Close">
+          ×
+        </button>
+      </div>
+
+      <p class="card-rating">
+        {standing ? (
+          <>
+            <strong>Club rating {Math.round(standing.rating)}</strong>
+            <span class="muted">
+              {" "}
+              unofficial · {standing.won}–{standing.played - standing.won}
+            </span>
+          </>
+        ) : (
+          <span class="muted">Club rating: none yet</span>
+        )}
+        {profile.ratingsCentralId && (
+          <>
+            {" · "}
+            <a href={ratingsCentralUrl(profile.ratingsCentralId)}>Ratings Central</a>
+          </>
+        )}
+      </p>
+
+      {kit && <p class="card-kit">{kit}</p>}
+
+      {record.length > 0 && (
+        <ul class="card-record">
+          {record.map((m) => (
+            <li>
+              <span class={m.games > m.against ? "won" : "lost"}>{m.games > m.against ? "W" : "L"}</span> {m.games}–
+              {m.against} v {m.opponentName} <span class="muted">· {formatDay(m.playedOn)}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {opinions?.shown ? (
+        <>
+          {strengths.length > 0 && (
+            <ul class="chips card-tags" aria-label="What opponents rate highly">
+              {strengths.map((s) => (
+                <li>{s}</li>
+              ))}
+            </ul>
+          )}
+          <div class="card-hexagon">
+            <Hexagon name={profile.name} averages={opinions.averages} idPrefix={`${cardId}-`} />
+          </div>
+        </>
+      ) : (
+        <p class="muted card-waiting">
+          Opponents' view shows after {HEXAGON_AFTER} different opponents review: {opinions?.reviewers ?? 0} so far.
+        </p>
+      )}
+
+      <a class="button button-quiet card-more" href={`/players/${profile.id}`}>
+        Full profile
+      </a>
+    </div>
+  )
+}

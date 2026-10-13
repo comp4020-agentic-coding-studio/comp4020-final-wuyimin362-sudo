@@ -170,9 +170,15 @@ const problem = pick(problems, Astro.url.searchParams.get("problem"));
                 </p>
                 {g.note && <p class="game-note">{g.note}</p>}
                 {(player?.id === g.hostId || player?.id === g.guestId) && (
-                  <p class="game-who">
-                    <a href={`/games/${g.id}`}>Messages about this game</a>
-                  </p>
+                  <div class="actions">
+                    <a
+                      class="button button-quiet"
+                      href={`/games/${g.id}`}
+                      aria-label={`Messages with ${player.id === g.hostId ? g.guestName : g.hostName} about ${formatWhen(g.startsAt)}`}
+                    >
+                      Messages
+                    </a>
+                  </div>
                 )}
               </li>
             ))}

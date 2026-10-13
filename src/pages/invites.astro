@@ -55,9 +55,6 @@ const standing = (status: string) =>
                   {kinds[g.kind]} · from <PlayerName id={g.hostId} name={g.hostName} username={g.hostUsername} />
                 </p>
                 {g.note && <p class="game-note">{g.note}</p>}
-                <p class="game-who">
-                  <a href={`/games/${g.id}`}>Messages</a>
-                </p>
                 <div class="actions">
                   <form method="post" action={`/games/${g.id}/accept`}>
                     <button class="button" type="submit" aria-label={`Accept ${g.hostName}'s invitation`}>
@@ -69,6 +66,9 @@ const standing = (status: string) =>
                       Decline
                     </button>
                   </form>
+                  <a class="button button-quiet" href={`/games/${g.id}`} aria-label={`Messages with ${g.hostName}`}>
+                    Messages
+                  </a>
                 </div>
               </li>
             ))}
@@ -94,16 +94,18 @@ const standing = (status: string) =>
                   {kinds[g.kind]} · to <a href={`/players/${g.invitedId}`}>{g.invitedName}</a> · {standing(g.status)}
                 </p>
                 {g.note && <p class="game-note">{g.note}</p>}
-                <p class="game-who">
-                  <a href={`/games/${g.id}`}>Messages</a>
-                </p>
-                {g.status === "open" && (
-                  <form method="post" action={`/games/${g.id}/withdraw`}>
-                    <button class="button button-quiet" type="submit">
-                      Withdraw
-                    </button>
-                  </form>
-                )}
+                <div class="actions">
+                  <a class="button button-quiet" href={`/games/${g.id}`} aria-label={`Messages with ${g.invitedName}`}>
+                    Messages
+                  </a>
+                  {g.status === "open" && (
+                    <form method="post" action={`/games/${g.id}/withdraw`}>
+                      <button class="button button-quiet" type="submit">
+                        Withdraw
+                      </button>
+                    </form>
+                  )}
+                </div>
               </li>
             ))}
           </ul>

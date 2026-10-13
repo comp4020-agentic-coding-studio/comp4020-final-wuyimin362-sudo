@@ -19,6 +19,26 @@ export type Aspect = keyof typeof aspects;
 export const COMMENT_MAX = 140;
 export const HEXAGON_AFTER = 3;
 
+// What opponents rate highly, as words: an aspect averaging this or more out of
+// 5 becomes a tag. Only strengths are named, never weaknesses, and only once
+// the hexagon shows, so the club's etiquette of respecting opponents holds.
+export const STRENGTH_FROM = 4;
+const strengthLabels: Record<Aspect, string> = {
+  serve: "Strong serve",
+  receive: "Sharp receive",
+  forehand: "Big forehand",
+  backhand: "Solid backhand",
+  footwork: "Quick feet",
+  tactics: "Smart tactics",
+};
+
+export function strengthsFrom(averages: Record<Aspect, number>): string[] {
+  return (Object.keys(aspects) as Aspect[])
+    .filter((a) => averages[a] >= STRENGTH_FROM)
+    .sort((a, b) => averages[b] - averages[a])
+    .map((a) => strengthLabels[a]);
+}
+
 // What a reviewer may do with a match: review the other player in it, if it's
 // confirmed and they were one of the two. `done` says they already have.
 export function reviewable(matchId: number, reviewer: Pick<Player, "id">) {

@@ -1,17 +1,33 @@
 ---
 // The fields that describe a game: when, where, match or practice, and a
 // note. Shared by posting a game on the board and inviting someone directly.
+// The day and time are lists rather than the browser's own picker, which draws
+// itself in the browser's language; the server joins them back into one
+// Canberra wall-clock time (src/lib/time.ts).
 import { HORIZON_DAYS, kinds, NOTE_MAX } from "../lib/games";
-import { addDays, canberraNow } from "../lib/time";
+import { daysAhead, formatClock, formatDay, quarterHours } from "../lib/time";
 import { states, venueLabel, venues } from "../lib/venues";
 
-const now = canberraNow();
+const days = daysAhead(HORIZON_DAYS);
 ---
 
-<label class="field">
-  <span>When</span>
-  <input type="datetime-local" name="startsAt" required min={now} max={addDays(now, HORIZON_DAYS)} step="900" />
-</label>
+<fieldset class="when-fields">
+  <legend>When</legend>
+  <label class="field">
+    <span>Day</span>
+    <select name="startsDay" required>
+      <option value="">Day…</option>
+      {days.map((day, i) => <option value={day}>{i === 0 ? `Today, ${formatDay(day)}` : i === 1 ? `Tomorrow, ${formatDay(day)}` : formatDay(day)}</option>)}
+    </select>
+  </label>
+  <label class="field">
+    <span>Time</span>
+    <select name="startsTime" required>
+      <option value="">Time…</option>
+      {quarterHours.map((time) => <option value={time}>{formatClock(time)}</option>)}
+    </select>
+  </label>
+</fieldset>
 <label class="field">
   <span>Where</span>
   <select name="venue" required>

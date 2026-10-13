@@ -7,9 +7,11 @@ import { type Aspect, aspects } from "../lib/reviews";
 interface Props {
   name: string;
   averages: Record<Aspect, number>;
+  // keeps the title's and description's ids apart when a page draws two
+  idPrefix?: string;
 }
 
-const { name, averages } = Astro.props;
+const { name, averages, idPrefix = "" } = Astro.props;
 const keys = Object.keys(aspects) as Aspect[];
 const size = 280;
 const centre = size / 2;
@@ -29,10 +31,10 @@ const described = keys.map((k) => `${aspects[k]} ${averages[k].toFixed(1)}`).joi
   viewBox={`0 0 ${size} ${size}`}
   width={size}
   height={size}
-  aria-labelledby="hexagon-title hexagon-desc"
+  aria-labelledby={`${idPrefix}hexagon-title ${idPrefix}hexagon-desc`}
 >
-  <title id="hexagon-title">How opponents rate {name}'s game</title>
-  <desc id="hexagon-desc">{described}, each out of 5.</desc>
+  <title id={`${idPrefix}hexagon-title`}>How opponents rate {name}'s game</title>
+  <desc id={`${idPrefix}hexagon-desc`}>{described}, each out of 5.</desc>
   {[1, 2, 3, 4, 5].map((level) => <polygon class="hex-ring" points={points(() => (radius * level) / 5)} />)}
   {
     keys.map((_, i) => {
