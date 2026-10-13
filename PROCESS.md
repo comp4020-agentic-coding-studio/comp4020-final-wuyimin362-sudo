@@ -1,60 +1,51 @@
 # Process overview
 
 This is the project as it stands at crit 9 (All at once), rewritten rather than
-added to. Two Claude Code sessions did the work, on 6–7 and 12–13 October. The agent did most of the typing: the code, the tests,
-`CLAUDE.md`, the decision records, the README, this overview and my crit 8
-reflection are its drafts, made at my request from my decisions, and the
-commits say so.
+added to. Two Claude Code sessions did the work, on 6–7 and 12–13 October. The
+agent did most of the typing: the code, the tests, `CLAUDE.md`, the decision
+records, the README, this overview and my reflections are its drafts, made at my
+request from my decisions, and the commits say so.
 
 ## From the brief to one interaction, and back
 
-My idea was an app for ACT table tennis club members: profiles with each
-player's blade and rubbers, ratings, opponents' reviews, a six-sided strength
-chart, private messages, nearby players and venues, and sign-ups for official
-tournaments.
+My idea was an app for ACT table tennis club members: profiles with kit,
+ratings, opponents' reviews, a six-sided strength chart, private messages,
+nearby players, and sign-ups for official tournaments.
 
-The agent checked it against the brief and flagged four problems: private
-messages are close to the "chat room with the nouns swapped" the brief warns
-against, "nearby" needs members' locations, an unofficial app shouldn't take
-entries for official competitions, and most of it is asynchronous. I took its
-advice to cut the first version to posting a game and someone taking it, then
-brought the whole idea back, each feature limited against the problem it had
-flagged.
+The agent flagged four problems against the brief: private messages are close to
+the "chat room with the nouns swapped" it warns against, "nearby" needs
+locations, an unofficial app shouldn't take official entries, and most of it is
+asynchronous. I cut the first version to posting a game and someone taking it,
+then brought the whole idea back, each feature limited against its problem.
 
 Where I steered rather than accepted: the club itself, the Apple look (I pointed
 the agent at the apple-design-skill), the venues (I sent it to Table Tennis
-ACT's website, then told it NSW clubs were missing), bringing the features back,
-and putting accounts first.
+ACT's site, then added NSW clubs), and putting accounts first.
 
 ## Decisions, and what they cost
 
 **Two kinds of person.** A guest is a name and a cookie, so a pod-mate can try
 the board in one field; a member adds a username and password and keeps their
-games across devices, but with no email address can't reset a forgotten
-password. Passwords are scrypt hashes, sessions are stored only as hashes, and
-five wrong passwords lock an account for a minute
+games across devices, but with no email can't reset a forgotten password
 ([`fb23045...a10bebb`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-wuyimin362-sudo/compare/fb23045...a10bebb)).
 
 **The stack: Astro's Node server, with SQLite on the Fly volume**
 ([`140eb0b`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-wuyimin362-sudo/commit/140eb0b)).
 The honest reason is familiarity: my crit 7 repo already ran it on the same Fly
-shape, one 256 MB machine and one volume, and the cutoff was hours away, so I
-didn't seriously compare alternatives. I bet that server-sent events from one
-machine would carry crit 9, and so far they have: every change is already a form
-post, so a stream only names what changed and the open page fetches itself
-again, and one process makes an in-memory bus enough. The cost is that two
-machines would need a shared bus instead.
+shape, one 256 MB machine and one volume, so I didn't seriously compare
+alternatives. I bet server-sent events from one machine would carry crit 9, and
+they have: every change is already a form post, so a stream only names what
+changed and the open page fetches itself again. The cost is that two machines
+would need a shared bus instead of an in-memory one.
 
 **Each feature's limit, and what it costs:**
 
-- Profiles are members-only, and a photo is kept only if its own bytes say it's
-  an image; a marker has to sign up to see one
+- Profiles are members-only; a marker has to sign up to see one
   ([`5b62c2a...a61dc5d`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-wuyimin362-sudo/compare/5b62c2a...a61dc5d)).
-- "Near you" means sharing a usual venue, so nobody's location is needed; it's
-  only as good as what members fill in
+- "Near you" means sharing a usual venue, so nobody's location is needed
   ([`14b9ebc...45e1bee`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-wuyimin362-sudo/compare/14b9ebc...45e1bee)).
 - A match counts only once the opponent confirms it, and the rating is replayed
-  from confirmed matches, never stored; a bigger club would need it cached
+  from confirmed matches, never stored, so it can't drift
   ([`8038b02...3389437`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-wuyimin362-sudo/compare/8038b02...3389437)).
 - Reviews come only from a confirmed opponent, and the hexagon waits for three;
   comments carry the reviewer's name, trading candour for accountability
@@ -62,8 +53,14 @@ machines would need a shared bus instead.
 - An invitation is a game with one invitee, reusing the guarded accept, and each
   game with two players has a thread only they can read
   ([`c187611...c4f8c4d`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-wuyimin362-sudo/compare/c187611...c4f8c4d)).
-- Official events link out to Table Tennis ACT and take no entries; the list
-  goes stale unless updated
+  I asked for that thread to work like WeChat, with a profile behind each
+  picture, emoji, and inviting others in. The agent warned that copying a
+  messenger risks the chat room the brief warns against, and split it: the
+  interface now, with a card that keeps the profile's limits and replies sent
+  in one press; more players for crit 10, since they change rules `CLAUDE.md`
+  sets
+  ([`7ecd885...919471f`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-wuyimin362-sudo/compare/7ecd885...919471f)).
+- Official events link out and take no entries
   ([`9e956d4...8aab19b`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-wuyimin362-sudo/compare/9e956d4...8aab19b)).
 
 **Several people at once.** Crit 9 asked for one decision about several people
@@ -95,38 +92,42 @@ options and recommended one, and I took it.
 
 The deploy path came first: the course placeholder went to Fly before any code
 existed. Every feature then started as a failing check that drives the app
-through its own forms, and went green before merging; there are 32 now.
-Because they write data, they run in CI's throwaway container, not against the
-live site.
+through its own forms, and went green before merging; there are 38 now. They
+write data, so they run in CI's throwaway container, not against the live site.
 
-The checks never run a page's scripts, so live updates were also checked in
-headless Chrome on a local build: a posted game reached an open board in 64 ms,
-an invitation an open invites page in 11 ms, and a match report an open matches
-page in 21 ms, with no reload. Pages are checked at both marking viewports,
-which once caught a sentence naming the reporter twice
-([`534ea43`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-wuyimin362-sudo/commit/534ea43)).
+The checks never run a page's scripts or draw a page, so each change was also
+checked in headless Chrome at both marking viewports: a posted game reached an
+open board in 64 ms, an invitation an open invites page in 11 ms, and a match
+report an open matches page in 21 ms, with no reload. Screenshots also caught
+what the checks couldn't: a sentence naming the reporter twice
+([`534ea43`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-wuyimin362-sudo/commit/534ea43)),
+and the chat's row of quick replies widening a phone's page to 711 pixels.
 
-This crit's session also found the live board never deployed: `main` and the
-live site were still at crit 8. It went in through a pull request, so CI
-ran the whole suite first, then `main` was fast-forwarded to keep the cited
-commits' SHAs. Claude Code's permission check stopped the agent's first push to
-`main`, which deploys, until I said to go ahead. Live, the board's stream then
-answered within 52 ms, and a stranger was refused a game's stream.
+This crit's session found the live board never deployed: `main` and the live
+site were still at crit 8. It and the chat rework went in through pull requests,
+so CI ran the whole suite first; `main` was only fast-forwarded, keeping cited
+SHAs. Claude Code's permission check stopped the agent's first
+push to `main`, which deploys, until I said to go ahead.
 
 ## Mistakes that went into the harness
 
-- Twice a check was wrong rather than the code, and each fix got its own commit
+- Three times a check was wrong rather than the code, and each fix got its own
+  commit
   ([`6aa8f0d`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-wuyimin362-sudo/commit/6aa8f0d),
-  [`1a8e884`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-wuyimin362-sudo/commit/1a8e884));
-  the first also exposed a missing space between a name and its "Guest" marker.
+  [`1a8e884`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-wuyimin362-sudo/commit/1a8e884),
+  [`ee0a8d3`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-wuyimin362-sudo/commit/ee0a8d3)).
+  The last came when I asked for English everywhere: the Chinese on screen came
+  from the browser's own pickers, and replacing them broke sixteen checks
+  that found forms by a field's name. They now find a form by where it posts,
+  and one that had passed whatever the page showed tests something again.
 - drizzle-kit couldn't tell a dropped column from a renamed one, so `CLAUDE.md`
   says to split such changes into an add and a drop.
-- Writing the first-accept rule into `CLAUDE.md`, the agent stranded a sentence
-  about confirming matches under the rule about publishing topics; it went back
-  in
+- The agent stranded a `CLAUDE.md` sentence about confirming matches under the
+  wrong rule; it went back in
   [`7be49ce`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-wuyimin362-sudo/commit/7be49ce).
 
 ## Next
 
-The README has to come down towards 600 words, and crit 10 needs logging of who
-did what and a decision about who may see and change what.
+The README has to come down towards 600 words. Crit 10 needs logging of who did
+what, and a decision about who may see and change what, which is where more
+players in a game belong.
