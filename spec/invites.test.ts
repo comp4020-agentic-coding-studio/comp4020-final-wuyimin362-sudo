@@ -3,13 +3,13 @@ import {
   fetchAs,
   formTo,
   formWith,
+  gameFields,
   gameWith,
+  inviteForm,
   live,
   member,
-  quickPicks,
   stranger,
   submit,
-  threeDaysOut,
   visit,
   type Visitor,
 } from "./helpers.ts";
@@ -31,8 +31,8 @@ async function withProfile(label: string): Promise<Member> {
 
 // From the invitee's profile, the way a member would find them.
 async function invite(host: Member, invitee: Member, note: string) {
-  const form = formWith(await visit(invitee.profile, host.who), "startsAt");
-  return submit(form, { ...quickPicks(form), startsAt: threeDaysOut(), note }, host.who);
+  const form = inviteForm(await visit(invitee.profile, host.who));
+  return submit(form, gameFields(form, note), host.who);
 }
 
 // The invitation as it sits on someone's invites page.
@@ -101,6 +101,6 @@ describe.skipIf(live)("invitations and their messages", () => {
 
   it("offers no invitation on your own profile", async () => {
     const me = await withProfile("inv_self");
-    expect((await visit(me.profile, me.who)).querySelector('[name="startsAt"]')).toBeNull();
+    expect((await visit(me.profile, me.who)).querySelector('form[action$="/invite"]')).toBeNull();
   });
 });

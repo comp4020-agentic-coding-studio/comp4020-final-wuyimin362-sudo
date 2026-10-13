@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   formTo,
   formWith,
+  gameFields,
   gameWith,
+  inviteForm,
   join,
   listen,
   live,
@@ -11,7 +13,6 @@ import {
   quickPicks,
   stranger,
   submit,
-  threeDaysOut,
   visit,
   type Visitor,
 } from "./helpers.ts";
@@ -77,8 +78,8 @@ describe.skipIf(live)("real-time", () => {
     const profile =
       (await visit("/profile", invitee.who)).querySelector('a[href^="/players/"]')?.getAttribute("href") ?? "";
     const note = `spec live thread ${crypto.randomUUID().slice(0, 8)}`;
-    const offer = formWith(await visit(profile, host.who), "startsAt");
-    await submit(offer, { ...quickPicks(offer), startsAt: threeDaysOut(), note }, host.who);
+    const offer = inviteForm(await visit(profile, host.who));
+    await submit(offer, gameFields(offer, note), host.who);
     const thread = gameWith(await visit("/invites", host.who), note)
       ?.querySelector('a[href^="/games/"]')
       ?.getAttribute("href");
@@ -120,10 +121,10 @@ describe.skipIf(live)("real-time", () => {
     const note = `spec live invite ${crypto.randomUUID().slice(0, 8)}`;
     const profile =
       (await visit("/profile", invitee.who)).querySelector('a[href^="/players/"]')?.getAttribute("href") ?? "";
-    const offer = formWith(await visit(profile, host.who), "startsAt");
+    const offer = inviteForm(await visit(profile, host.who));
     const invited = inviteeEar.nextChange(SECOND);
     const overheard = outsiderEar.nextChange(SECOND);
-    expect((await submit(offer, { ...quickPicks(offer), startsAt: threeDaysOut(), note }, host.who)).status).toBe(303);
+    expect((await submit(offer, gameFields(offer, note), host.who)).status).toBe(303);
     expect(await invited, "the invitee heard nothing within a second of being invited").toBeDefined();
     expect(await overheard, "another member's stream heard about the invitation").toBeUndefined();
 

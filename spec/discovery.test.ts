@@ -6,6 +6,7 @@ import {
   join,
   live,
   member,
+  offerForm,
   stranger,
   submit,
   visit,
@@ -35,7 +36,7 @@ async function players(who: Visitor, filters?: Record<string, string>): Promise<
 describe.skipIf(live)("finding venues and players", () => {
   it("lists every venue the board offers, for anyone to see", async () => {
     const { who } = await member("venues");
-    const offered = [...formWith(await visit("/", who), "startsAt").querySelectorAll('select[name="venue"] option')]
+    const offered = [...offerForm(await visit("/", who)).querySelectorAll('select[name="venue"] option')]
       .filter((o) => o.getAttribute("value"))
       .map((o) => (o.textContent ?? "").split(",")[0].trim());
     expect(offered.length).toBeGreaterThan(0);

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formWith, gameWith, join, live, quickPicks, stranger, submit, threeDaysOut, visit } from "./helpers.ts";
+import { gameFields, gameWith, join, live, offerForm, stranger, submit, visit } from "./helpers.ts";
 
 // Crit 8's "it's alive", tried the way a stranger would: through the forms the
 // board serves, with nothing but a name. One person posts a game and finds it
@@ -11,8 +11,8 @@ describe.skipIf(live)("it's alive", () => {
     const note = `spec game ${id}`;
 
     const host = await join(`Spec host ${id}`);
-    const offer = formWith(await visit("/", host), "startsAt");
-    const posted = await submit(offer, { ...quickPicks(offer), startsAt: threeDaysOut(), note }, host);
+    const offer = offerForm(await visit("/", host));
+    const posted = await submit(offer, gameFields(offer, note), host);
     expect(posted.status).toBe(303);
 
     // their trace is there when they come back, and it's shared: anyone sees it

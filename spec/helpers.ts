@@ -178,8 +178,21 @@ export async function member(label: string): Promise<{ who: Visitor; name: strin
   return { who: { cookie: cookieFrom(res) }, name, username };
 }
 
+// A game's details as a script sends them: the venue and kind picked as a
+// member picking quickly would, and the time as one wall-clock field, which
+// the server takes in place of the page's day and time pickers.
+export function gameFields(form: HTMLFormElement, note: string): Record<string, string> {
+  const { startsDay: _day, startsTime: _time, ...picks } = quickPicks(form);
+  return { ...picks, startsAt: threeDaysOut(), note };
+}
+
+// The form that posts a game on the board, or invites someone from their
+// profile, found by where it posts rather than by what its fields are called.
+export const offerForm = (doc: Document) => formTo(doc, "/games");
+export const inviteForm = (doc: Document) => formTo(doc, "/invite");
+
 export async function postGame(who: Visitor, note: string): Promise<void> {
-  const offer = formWith(await visit("/", who), "startsAt");
-  const res = await submit(offer, { ...quickPicks(offer), startsAt: threeDaysOut(), note }, who);
+  const offer = offerForm(await visit("/", who));
+  const res = await submit(offer, gameFields(offer, note), who);
   expect(res.status).toBe(303);
 }

@@ -6,6 +6,7 @@ import {
   join,
   live,
   member,
+  offerForm,
   postGame,
   quickPicks,
   stranger,
@@ -97,7 +98,7 @@ describe.skipIf(live)("a game's conversation", () => {
 
   it("takes a game's time from English pickers as well as typed, and still only in the next eight weeks", async () => {
     const who = await join("Spec pickers");
-    const offer = formWith(await visit("/", who), "startsDay");
+    const offer = offerForm(await visit("/", who));
     expect(offer.querySelector('[name="startsTime"]'), "no time picker beside the day").not.toBeNull();
 
     const note = `spec picked ${crypto.randomUUID().slice(0, 8)}`;
