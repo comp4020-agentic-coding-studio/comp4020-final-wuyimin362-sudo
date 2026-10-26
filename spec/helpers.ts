@@ -1,4 +1,4 @@
-import { JSDOM } from "jsdom";
+import { JSDOM, VirtualConsole } from "jsdom";
 import { expect, inject } from "vitest";
 
 // What the checks in spec/ share: a browser reduced to the cookie it holds, and
@@ -103,6 +103,88 @@ export function listen(path: string, who: Visitor) {
       });
     },
     close: () => controller.abort(),
+  };
+}
+
+// Opens a page the way a visitor's browser holds it open: its own scripts run,
+// with this visitor's cookie on every request they make and on the live
+// streams they open, so a check can watch what the page itself shows when
+// someone else changes something. `shows` resolves with how many milliseconds
+// the text took to appear, or undefined if it didn't in time.
+export async function openPage(path: string, who: Visitor) {
+  const url = new URL(path, baseUrl);
+  const res = await fetch(url, { headers: cookieHeader(who) });
+  expect(res.status, `GET ${path}`).toBe(200);
+  const errors: string[] = [];
+  const streams: AbortController[] = [];
+  const virtualConsole = new VirtualConsole();
+  virtualConsole.on("jsdomError", (e) => errors.push(e.message));
+  const dom = new JSDOM(await res.text(), {
+    url: url.href,
+    runScripts: "dangerously",
+    virtualConsole,
+    beforeParse(window) {
+      // the page's requests go out as this visitor
+      window.fetch = (input: RequestInfo | URL, init?: RequestInit) =>
+        fetch(new URL(String(input), url), { ...init, headers: { ...init?.headers, ...cookieHeader(who) } });
+      // just enough of a browser's EventSource for the pages' scripts
+      window.EventSource = class {
+        #handlers: Record<string, ((e: Event) => void)[]> = {};
+        constructor(stream: string) {
+          const controller = new AbortController();
+          streams.push(controller);
+          fetch(new URL(stream, url), {
+            headers: { accept: "text/event-stream", ...cookieHeader(who) },
+            signal: controller.signal,
+          })
+            .then(async (r) => {
+              if (r.status !== 200 || !r.body) return;
+              this.#emit("open");
+              const reader = r.body.getReader();
+              const decoder = new TextDecoder();
+              let buffer = "";
+              for (;;) {
+                const { value, done } = await reader.read();
+                if (done) break;
+                buffer += decoder.decode(value, { stream: true });
+                for (let end = buffer.indexOf("\n\n"); end >= 0; end = buffer.indexOf("\n\n")) {
+                  if (/^event: change$/m.test(buffer.slice(0, end))) this.#emit("change");
+                  buffer = buffer.slice(end + 2);
+                }
+              }
+            })
+            .catch(() => {
+              // closed with the page
+            });
+        }
+        #emit(type: string) {
+          for (const handler of this.#handlers[type] ?? []) handler(new window.Event(type));
+        }
+        addEventListener(type: string, handler: (e: Event) => void) {
+          (this.#handlers[type] ??= []).push(handler);
+        }
+        close() {}
+      } as unknown as typeof window.EventSource;
+    },
+  });
+  // give the page's scripts a moment to connect, as a browser would on load
+  await new Promise((resolve) => setTimeout(resolve, 300));
+  const text = () => dom.window.document.body.textContent ?? "";
+  return {
+    document: dom.window.document,
+    errors,
+    text,
+    async shows(wanted: string, withinMs: number): Promise<number | undefined> {
+      const started = Date.now();
+      while (Date.now() - started <= withinMs) {
+        if (text().includes(wanted)) return Date.now() - started;
+        await new Promise((resolve) => setTimeout(resolve, 20));
+      }
+    },
+    close() {
+      for (const stream of streams) stream.abort();
+      dom.window.close();
+    },
   };
 }
 
