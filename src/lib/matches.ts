@@ -60,7 +60,9 @@ export function recordMatch(
 }
 
 // Only the opponent can answer a report, and only while it's waiting. The
-// reporter is waiting for the answer, so it reaches their own stream.
+// reporter is waiting for the answer, so it reaches their own stream; a
+// confirmed match also changes both players' records and the club rating,
+// which members see on profiles.
 function answer(id: number, player: Player, status: "confirmed" | "disputed"): MatchProblem | undefined {
   const [answered] = db
     .update(matches)
@@ -70,6 +72,7 @@ function answer(id: number, player: Player, status: "confirmed" | "disputed"): M
     .all();
   if (!answered) return "gone";
   publish(`player:${answered.reporterId}`, `player:${player.id}`);
+  if (status === "confirmed") publish("members");
 }
 
 export const confirmMatch = (id: number, player: Player) => answer(id, player, "confirmed");

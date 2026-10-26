@@ -61,7 +61,9 @@ const aspectKeys = Object.keys(aspects) as Aspect[];
         </section>
       ) : (
         <>
-          <div class="profile-head">
+          {/* the parts that change with what members share; the invitation
+              form stays put, so nothing half-typed is lost */}
+          <div class="profile-head" id="profile-head" data-live-area>
             <Avatar id={profile.id} name={profile.name} photoVersion={profile.photoVersion} />
             <div>
               <h1>{profile.name}</h1>
@@ -95,6 +97,7 @@ const aspectKeys = Object.keys(aspects) as Aspect[];
             </section>
           )}
 
+          <div id="profile-details" data-live-area>
           <section class="panel" aria-labelledby="record-heading">
             <h2 id="record-heading">Record</h2>
             <p>
@@ -202,8 +205,56 @@ const aspectKeys = Object.keys(aspects) as Aspect[];
               </ul>
             )}
           </section>
+          </div>
         </>
       )
     }
   </main>
+
+  {
+    profile && (
+      <script is:inline>
+        // A profile's games come from the board, which a member's own stream
+        // doesn't carry, so the page also listens to the board's and swaps in
+        // the same parts when a game is posted, taken or withdrawn.
+        (() => {
+          if (!("EventSource" in window)) return;
+          let busy = false;
+          let again = false;
+          const refresh = async () => {
+            if (busy) {
+              again = true;
+              return;
+            }
+            busy = true;
+            try {
+              const res = await fetch(location.pathname, { headers: { accept: "text/html" } });
+              if (!res.ok) return;
+              const fresh = new DOMParser().parseFromString(await res.text(), "text/html");
+              for (const id of ["profile-head", "profile-details"]) {
+                const next = fresh.getElementById(id);
+                const current = document.getElementById(id);
+                if (next && current) current.replaceWith(next);
+              }
+            } catch {
+              // the next change, or a reload, catches up
+            } finally {
+              busy = false;
+              if (again) {
+                again = false;
+                refresh();
+              }
+            }
+          };
+          const source = new EventSource("/live/board");
+          let opened = false;
+          source.addEventListener("change", refresh);
+          source.addEventListener("open", () => {
+            if (opened) refresh();
+            opened = true;
+          });
+        })();
+      </script>
+    )
+  }
 </Base>

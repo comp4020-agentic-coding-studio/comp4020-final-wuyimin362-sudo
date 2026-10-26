@@ -40,7 +40,9 @@ const choices: { kind: Interest | "none"; label: string }[] = [
       )
     }
 
-    <ul class="games single">
+    {/* who's going changes with what members share; the buttons in it are
+        one press each, so swapping them in loses nothing typed */}
+    <ul class="games single" id="event-list" data-live-area>
       {
         shown.map((e) => (
           <li class="game event" id={`event-${e.id}`}>

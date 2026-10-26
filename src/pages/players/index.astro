@@ -78,30 +78,33 @@ const kitLine = (m: (typeof found)[number]) =>
             </button>
           </form>
 
-          {venue === "near" && mine.length === 0 ? (
-            <p class="empty">
-              "Near you" means people who share a venue with you. <a href="/profile">Add where you usually play</a> to
-              see them.
-            </p>
-          ) : found.length === 0 ? (
-            <p class="empty">Nobody matches yet. Try anywhere, or any style.</p>
-          ) : (
-            <ul class="games">
-              {found.map((m) => (
-                <li class="game player-card">
-                  <Avatar id={m.id} name={m.name} photoVersion={m.photoVersion} size={56} />
-                  <div>
-                    <p class="game-when">
-                      <a href={`/players/${m.id}`}>{m.name}</a>
-                    </p>
-                    <p class="game-who">@{m.username}</p>
-                    {kitLine(m) && <p class="game-who">{kitLine(m)}</p>}
-                    {m.venues.length > 0 && <p class="game-who">Plays at {m.venues.map(venueLabel).join("; ")}</p>}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
+          {/* who's here to find changes with what members share */}
+          <div id="players-found" data-live-area>
+            {venue === "near" && mine.length === 0 ? (
+              <p class="empty">
+                "Near you" means people who share a venue with you. <a href="/profile">Add where you usually play</a> to
+                see them.
+              </p>
+            ) : found.length === 0 ? (
+              <p class="empty">Nobody matches yet. Try anywhere, or any style.</p>
+            ) : (
+              <ul class="games">
+                {found.map((m) => (
+                  <li class="game player-card">
+                    <Avatar id={m.id} name={m.name} photoVersion={m.photoVersion} size={56} />
+                    <div>
+                      <p class="game-when">
+                        <a href={`/players/${m.id}`}>{m.name}</a>
+                      </p>
+                      <p class="game-who">@{m.username}</p>
+                      {kitLine(m) && <p class="game-who">{kitLine(m)}</p>}
+                      {m.venues.length > 0 && <p class="game-who">Plays at {m.venues.map(venueLabel).join("; ")}</p>}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </>
       )
     }

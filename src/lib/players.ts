@@ -2,6 +2,7 @@ import { createHash, randomBytes } from "node:crypto";
 import type { AstroCookies } from "astro";
 import { and, eq, gt } from "drizzle-orm";
 import { db } from "./db";
+import { publish } from "./live";
 import { hashPassword, verifyPassword } from "./passwords";
 import { players, sessions } from "./schema";
 
@@ -111,6 +112,9 @@ export async function signUp(
     if (isTaken(err)) return "taken";
     throw err;
   }
+  // a new member is someone to find; a guest becoming one also loses their
+  // Guest mark on the board, which anyone can see
+  publish("members", "board");
 }
 
 // Five wrong passwords lock a username for a minute. The count lives in memory:

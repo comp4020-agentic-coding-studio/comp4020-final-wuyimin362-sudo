@@ -1,5 +1,6 @@
 import { and, eq, isNotNull, ne } from "drizzle-orm";
 import { db } from "./db";
+import { publish } from "./live";
 import type { Player } from "./players";
 import { avatars, homeVenues, players } from "./schema";
 import { venues } from "./venues";
@@ -67,6 +68,8 @@ export function saveProfile(playerId: string, form: FormData): ProfileProblem | 
     tx.delete(homeVenues).where(eq(homeVenues.playerId, playerId)).run();
     for (const venue of chosen) tx.insert(homeVenues).values({ playerId, venue }).run();
   });
+  // only members can see a profile
+  publish("members");
 }
 
 // What a file's first bytes say it is. The file's name and the browser's word
@@ -91,6 +94,7 @@ export async function savePhoto(playerId: string, file: FormDataEntryValue | nul
     .values({ playerId, type, data, updatedAt })
     .onConflictDoUpdate({ target: avatars.playerId, set: { type, data, updatedAt } })
     .run();
+  publish("members");
 }
 
 export function photoOf(playerId: string) {
