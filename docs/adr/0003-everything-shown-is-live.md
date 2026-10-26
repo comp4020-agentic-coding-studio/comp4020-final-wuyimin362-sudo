@@ -58,8 +58,9 @@ The promise about location outranks the counts.
   people at once it would be the first thing to change, to topics per page.
 - A member on the venues page sees their header counts (invites, matches to
   confirm) catch up only when they open another page.
-- The card behind a picture in a game's conversation is a popover. It isn't
-  swapped while open, so it shows what was true when the page loaded.
+- In a game's conversation, the other player's picture and the card behind it
+  show what was true when the page loaded. The card is a popover, and swapping
+  it would close it under its reader.
 
 ## How we know it holds
 
