@@ -3,6 +3,9 @@ import {
   baseUrl,
   fetchAs,
   formWith,
+  gameFields,
+  gameWith,
+  inviteForm,
   join,
   live,
   member,
@@ -43,6 +46,23 @@ describe.skipIf(live)("finding venues and players", () => {
 
     const page = (await visit("/venues", stranger)).body.textContent ?? "";
     for (const venue of offered) expect(page).toContain(venue);
+  });
+
+  it("turns away a game or an invitation at a venue the board doesn't list", async () => {
+    const [host, invitee] = [await member("venue_h"), await member("venue_i")];
+    const note = `spec unlisted ${crypto.randomUUID().slice(0, 8)}`;
+    const offer = offerForm(await visit("/", host.who));
+    const posted = await submit(offer, { ...gameFields(offer, note), venue: "my-garage" }, host.who);
+    expect(posted.headers.get("location"), "a game was posted at an unlisted venue").toContain("problem=venue");
+
+    const profile =
+      (await visit("/profile", invitee.who)).querySelector('a[href^="/players/"]')?.getAttribute("href") ?? "";
+    const invite = inviteForm(await visit(profile, host.who));
+    const invited = await submit(invite, { ...gameFields(invite, note), venue: "my-garage" }, host.who);
+    expect(invited.headers.get("location"), "an invitation was sent to an unlisted venue").toContain("problem=venue");
+
+    expect(gameWith(await visit("/", stranger), note), "a game at an unlisted venue is on the board").toBeUndefined();
+    expect(gameWith(await visit("/invites", host.who), note), "an invitation to an unlisted venue went out").toBeUndefined();
   });
 
   it("sorts venues by distance without any way to send a location, whoever is looking", async () => {
