@@ -216,7 +216,8 @@ const aspectKeys = Object.keys(aspects) as Aspect[];
       <script is:inline>
         // A profile's games come from the board, which a member's own stream
         // doesn't carry, so the page also listens to the board's and swaps in
-        // the same parts when a game is posted, taken or withdrawn.
+        // whichever of the same parts changed when a game is posted, taken or
+        // withdrawn.
         (() => {
           if (!("EventSource" in window)) return;
           let busy = false;
@@ -234,7 +235,7 @@ const aspectKeys = Object.keys(aspects) as Aspect[];
               for (const id of ["profile-head", "profile-details"]) {
                 const next = fresh.getElementById(id);
                 const current = document.getElementById(id);
-                if (next && current) current.replaceWith(next);
+                if (next && current && next.outerHTML !== current.outerHTML) current.replaceWith(next);
               }
             } catch {
               // the next change, or a reload, catches up

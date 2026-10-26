@@ -116,11 +116,14 @@ const invited = player && !isGuest(player) ? invitationsFor(player.id).length : 
           <p class="visually-hidden" aria-live="polite" data-live-me-status></p>
           <script is:inline>
             // A member's own changes stay live on every page: an invitation or
-            // a match report waiting on them, or the answer to one they sent,
-            // arrives on their own stream, and the page fetches itself again
-            // to take the header's fresh counts and swap in any list marked
-            // data-live-area. Forms are left alone, so nothing half-typed is
-            // lost. Without JavaScript the counts and lists catch up on the
+            // a match report waiting on them, the answer to one they sent, and
+            // anything members share (who's going to an event, a profile, a
+            // review) arrive on their own stream, and the page fetches itself
+            // again, filters and all, to take the header's fresh counts and
+            // swap in any part marked data-live-area. Only a part that changed
+            // is swapped, so focus stays where it was and a screen reader hears
+            // of real changes only. Forms are left alone, so nothing half-typed
+            // is lost. Without JavaScript the counts and lists catch up on the
             // next page load.
             (() => {
               if (!("EventSource" in window)) return;
@@ -134,19 +137,26 @@ const invited = player && !isGuest(player) ? invitationsFor(player.id).length : 
                 }
                 busy = true;
                 try {
-                  const res = await fetch(location.pathname, { headers: { accept: "text/html" } });
+                  const res = await fetch(location.pathname + location.search, { headers: { accept: "text/html" } });
                   if (!res.ok) return;
                   const fresh = new DOMParser().parseFromString(await res.text(), "text/html");
+                  let changed = false;
                   // the links stay put, so focus stays on them; only their counts change
                   for (const link of document.querySelectorAll("[data-live-count]")) {
                     const next = fresh.querySelector('[data-live-count="' + link.dataset.liveCount + '"]');
-                    if (next) link.innerHTML = next.innerHTML;
+                    if (next && next.innerHTML !== link.innerHTML) {
+                      link.innerHTML = next.innerHTML;
+                      changed = true;
+                    }
                   }
                   for (const area of document.querySelectorAll("[data-live-area]")) {
                     const next = fresh.getElementById(area.id);
-                    if (next) area.replaceWith(next);
+                    if (next && next.outerHTML !== area.outerHTML) {
+                      area.replaceWith(next);
+                      changed = true;
+                    }
                   }
-                  if (status) status.textContent = "Your invites or matches just changed.";
+                  if (changed && status) status.textContent = "This page just changed.";
                 } catch {
                   // the next change, or a reload, catches up
                 } finally {
