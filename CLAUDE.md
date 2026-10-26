@@ -21,7 +21,9 @@ rules, the README changes first, then the rule.
   than once per match, or show a member's hexagon or review comments before
   three different opponents have reviewed them.
 - Add a general chat. Messages live only inside a game, and only its two
-  players can read or write them.
+  players can read or write them. A game has two players, never more, without
+  a new decision record (`docs/adr/0004-who-may-see-and-change-what.md`, which
+  also sets out who may see and change everything else).
 - Show a direct invitation on the public board before it's accepted, or let
   anyone but the invitee accept or decline it.
 - Present itself as Table Tennis ACT's, or take entries for official
