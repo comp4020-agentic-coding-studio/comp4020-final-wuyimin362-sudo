@@ -10,7 +10,8 @@ rules, the README changes first, then the rule.
   guest joins with a name.
 - Send a visitor's location anywhere. Distance to venues is worked out in the
   browser by an inline script with no fetch, beacon or socket, and no page
-  loads an external script.
+  loads an external script. The venues page is quiet for everyone, members
+  included: it carries no live stream, so it shows nothing that changes.
 - Offer a venue that isn't in `src/lib/venues.ts`, or a free-text address
   field. A venue change cites the page it came from.
 - Count a match score that both players haven't confirmed, or present the

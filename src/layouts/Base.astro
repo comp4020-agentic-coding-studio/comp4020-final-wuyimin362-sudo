@@ -8,9 +8,12 @@ import { currentPlayer, isGuest } from "../lib/players";
 
 interface Props {
   title: string;
+  // a page that must have no way to send anything, like the venues page, which
+  // asks the browser where you are: it leaves out the member's live stream
+  quiet?: boolean;
 }
 
-const { title } = Astro.props;
+const { title, quiet = false } = Astro.props;
 const path = Astro.url.pathname;
 const player = currentPlayer(Astro.cookies);
 // reports waiting for a member to confirm, flagged in the header
@@ -108,7 +111,7 @@ const invited = player && !isGuest(player) ? invitationsFor(player.id).length : 
       <p>An unofficial board for ACT table tennis club members. It isn't run by the club.</p>
     </footer>
     {
-      player && !isGuest(player) && (
+      player && !isGuest(player) && !quiet && (
         <>
           <p class="visually-hidden" aria-live="polite" data-live-me-status></p>
           <script is:inline>
