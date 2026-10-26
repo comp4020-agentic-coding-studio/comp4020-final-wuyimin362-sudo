@@ -109,14 +109,18 @@ export function listen(path: string, who: Visitor) {
 // Opens a page the way a visitor's browser holds it open: its own scripts run,
 // with this visitor's cookie on every request they make and on the live
 // streams they open, so a check can watch what the page itself shows when
-// someone else changes something. `shows` resolves with how many milliseconds
-// the text took to appear, or undefined if it didn't in time.
+// someone else changes something. It hands the page over once every stream the
+// page opened is connected, so the clock a check starts after it is fair.
+// `shows` resolves with how many milliseconds the text took to appear, or
+// undefined if it didn't in time.
 export async function openPage(path: string, who: Visitor) {
   const url = new URL(path, baseUrl);
   const res = await fetch(url, { headers: cookieHeader(who) });
   expect(res.status, `GET ${path}`).toBe(200);
   const errors: string[] = [];
   const streams: AbortController[] = [];
+  // one promise per stream the page opens, settled when it's connected or refused
+  const connecting: Promise<void>[] = [];
   const virtualConsole = new VirtualConsole();
   virtualConsole.on("jsdomError", (e) => errors.push(e.message));
   const dom = new JSDOM(await res.text(), {
@@ -133,11 +137,14 @@ export async function openPage(path: string, who: Visitor) {
         constructor(stream: string) {
           const controller = new AbortController();
           streams.push(controller);
+          let connected = () => {};
+          connecting.push(new Promise<void>((resolve) => (connected = resolve)));
           fetch(new URL(stream, url), {
             headers: { accept: "text/event-stream", ...cookieHeader(who) },
             signal: controller.signal,
           })
             .then(async (r) => {
+              connected();
               if (r.status !== 200 || !r.body) return;
               this.#emit("open");
               const reader = r.body.getReader();
@@ -154,7 +161,8 @@ export async function openPage(path: string, who: Visitor) {
               }
             })
             .catch(() => {
-              // closed with the page
+              // closed with the page, or never reached
+              connected();
             });
         }
         #emit(type: string) {
@@ -167,8 +175,8 @@ export async function openPage(path: string, who: Visitor) {
       } as unknown as typeof window.EventSource;
     },
   });
-  // give the page's scripts a moment to connect, as a browser would on load
-  await new Promise((resolve) => setTimeout(resolve, 300));
+  // the page's scripts have run; wait for the streams they opened, but not forever
+  await Promise.race([Promise.all(connecting), new Promise((resolve) => setTimeout(resolve, 5000))]);
   const text = () => dom.window.document.body.textContent ?? "";
   return {
     document: dom.window.document,
