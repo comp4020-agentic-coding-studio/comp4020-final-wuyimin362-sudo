@@ -110,6 +110,40 @@ describe.skipIf(live)("everything shown is live", () => {
     page.close();
   });
 
+  it("keeps an open players page's filter when it takes a change", async () => {
+    const watcher = await member("lv_filter");
+    const page = await openPage("/players?venue=&style=defender", watcher.who);
+
+    // an attacker joins first: a change the page takes, but not one it lists
+    const attacker = await member("lv_atk");
+    const attackerForm = formWith(await visit("/profile", attacker.who), "blade");
+    await submit(attackerForm, { ...quickPicks(attackerForm), style: "attacker" }, attacker.who);
+    const defender = await member("lv_def");
+    const defenderForm = formWith(await visit("/profile", defender.who), "blade");
+    await submit(defenderForm, { ...quickPicks(defenderForm), style: "defender" }, defender.who);
+
+    expect(await page.shows(defender.name, SECOND), "the filtered page didn't show the new defender").toBeDefined();
+    expect(page.text(), "the filtered page dropped its filter and listed an attacker").not.toContain(attacker.name);
+    page.close();
+  });
+
+  it("leaves focus where it was when a change doesn't touch what the page shows", async () => {
+    const [watcher, other] = [await member("lv_focus"), await withProfile("lv_elsewhere")];
+    const page = await openPage("/events", watcher.who);
+    const link = page.document.querySelector("#event-list a") as HTMLAnchorElement | null;
+    if (!link) throw new Error("no link on the events list to focus");
+    link.focus();
+
+    // a change to someone's profile reaches every member's page, but not this list
+    const blade = `Spec unseen ${crypto.randomUUID().slice(0, 6)}`;
+    const form = formWith(await visit("/profile", other.who), "blade");
+    await submit(form, { ...quickPicks(form), blade }, other.who);
+    // a second's grace, as long as a change takes to arrive
+    await new Promise((resolve) => setTimeout(resolve, SECOND));
+    expect(page.document.activeElement, "an unchanged list was swapped, and focus went with it").toBe(link);
+    page.close();
+  });
+
   it("carries what members share only on a member's own stream", async () => {
     const [ear, keen] = [listen("/live/me", (await member("lv_ear")).who), await member("lv_mark")];
     expect(await ear.status).toBe(200);
