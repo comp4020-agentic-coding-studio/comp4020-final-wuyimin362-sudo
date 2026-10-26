@@ -383,6 +383,11 @@ select:focus-visible {
   margin-bottom: 16px;
 }
 
+/* a line under a board's heading, closing the gap the heading leaves */
+.board .board-lede {
+  margin: -10px 0 16px;
+}
+
 .games {
   display: grid;
   gap: 16px;
@@ -429,6 +434,17 @@ select:focus-visible {
 .game form {
   margin-top: auto;
   padding-top: 14px;
+}
+
+/* a game whose time has passed: a record, set back from what's still to come */
+.game-past {
+  border: 1px solid var(--line);
+  background: var(--bg);
+  box-shadow: none;
+}
+
+.game-past .game-note {
+  background: var(--surface);
 }
 
 .empty {
