@@ -45,15 +45,23 @@ describe.skipIf(live)("finding venues and players", () => {
     for (const venue of offered) expect(page).toContain(venue);
   });
 
-  it("sorts venues by distance without any way to send a location", async () => {
-    const doc = await visit("/venues", stranger);
-    const scripts = [...doc.querySelectorAll("script")];
-    // everything the page runs is right there to read
-    expect(scripts.filter((s) => s.hasAttribute("src"))).toEqual([]);
-    const code = scripts.map((s) => s.textContent ?? "").join("\n");
-    expect(code).toContain("navigator.geolocation");
-    for (const send of ["fetch(", "XMLHttpRequest", "sendBeacon", "WebSocket", "EventSource", ".submit(", "new Image"]) {
-      expect(code, `the venues page's script can send data with ${send}`).not.toContain(send);
+  it("sorts venues by distance without any way to send a location, whoever is looking", async () => {
+    // a signed-in visitor's page carries more script than a stranger's, so
+    // all three are read
+    for (const [who, visitor] of [
+      ["a stranger", stranger],
+      ["a guest", await join("Spec venue guest")],
+      ["a member", (await member("venue_m")).who],
+    ] as const) {
+      const doc = await visit("/venues", visitor);
+      const scripts = [...doc.querySelectorAll("script")];
+      // everything the page runs is right there to read
+      expect(scripts.filter((s) => s.hasAttribute("src"))).toEqual([]);
+      const code = scripts.map((s) => s.textContent ?? "").join("\n");
+      expect(code).toContain("navigator.geolocation");
+      for (const send of ["fetch(", "XMLHttpRequest", "sendBeacon", "WebSocket", "EventSource", ".submit(", "new Image"]) {
+        expect(code, `the venues page's script can send data with ${send}, for ${who}`).not.toContain(send);
+      }
     }
   });
 
