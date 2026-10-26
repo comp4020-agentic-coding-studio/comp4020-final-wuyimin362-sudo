@@ -68,8 +68,14 @@ rules, the README changes first, then the rule.
 - A change that waits on a member or answers one (an invitation, a match report,
   and their answers) also publishes each member's own topic, and every member's
   page listens on their own stream, which the cookie picks and nobody else can
-  open (`docs/adr/0002-what-reaches-people-live.md`). Event interest, reviews
-  and profiles wait for a reload without a new decision record.
+  open (`docs/adr/0002-what-reaches-people-live.md`).
+- Every page that shows something another person can change takes the change
+  live (`docs/adr/0003-everything-shown-is-live.md`). A change to what only
+  members see of each other (event interest, profiles and photos, reviews,
+  confirmed matches, new members) publishes `members`, which only a member's own
+  stream carries. A new page that shows changing data marks it `data-live-area`
+  and gets a check in `spec/live-everywhere.test.ts`. The venues page is the one
+  exception, and shows nothing that changes.
 - The club rating is replayed from confirmed matches every time it's shown.
   Never store a rating that could drift from the record.
 - Schema changes go through `pnpm db:generate` and a committed migration. An
