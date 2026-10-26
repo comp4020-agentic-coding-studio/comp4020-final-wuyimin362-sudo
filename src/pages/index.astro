@@ -33,7 +33,7 @@ const problems: Record<string, string> = {
   venue: "Pick one of the listed venues.",
   kind: "Choose a match or a practice.",
   note: `Keep the note to ${NOTE_MAX} characters.`,
-  gone: "That game isn't open any more: someone took it, or it was withdrawn.",
+  gone: "That game isn't open any more: someone took it, it was withdrawn, or its time has passed.",
 };
 // only the messages above, whatever the query string says
 const pick = (messages: Record<string, string>, key: string | null) =>
