@@ -37,6 +37,10 @@ rules, the README changes first, then the rule.
 
 - Passwords are stored only as scrypt hashes (`src/lib/passwords.ts`). They
   are never logged, never echoed back, and never stored anywhere else.
+- Every action is logged by `src/middleware.ts`, one line each, naming who by
+  player id and kind (guest or member). A log line never holds a name, a
+  username, a token, a cookie, an IP address, or anything anyone wrote, and no
+  route logs on its own. `spec/logging.test.ts` holds both.
 - Session tokens live only in the cookie. The database keeps their SHA-256,
   and logging out deletes the session row.
 - A guest who makes an account keeps their player row and their games.

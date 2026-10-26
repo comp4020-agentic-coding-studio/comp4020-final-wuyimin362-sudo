@@ -27,6 +27,14 @@ Everything else in `spec/` is yours to write. Any `spec/*.test.ts` runs with
 `pnpm check`, against the same running app. Some lines of a spec only a person
 can judge; those are left to the crit and the marker.
 
+Most of this app's checks write data, so they stand down against the live site
+and run in CI's throwaway container or against a local server. They run one
+file at a time, because the real-time checks listen on streams every check
+shares. `logging.test.ts` reads what the server prints, which no request can
+see: in CI it reads the container's output (`docker logs app`), and locally
+the file named in `APP_LOG_FILE`, so start the app with its output going to a
+file and point `APP_LOG_FILE` at it. Without either, that check stands down.
+
 At a crit, a green `check` job is half the shipped mark, but it's never the
 judgement of the work: your tutor checks what you deployed against the published
 spec.
