@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   baseUrl,
   fetchAs,
+  formTo,
   formWith,
   gameFields,
   gameWith,
@@ -10,6 +11,7 @@ import {
   live,
   member,
   offerForm,
+  quickPicks,
   stranger,
   submit,
   visit,
@@ -107,4 +109,35 @@ describe.skipIf(live)("finding venues and players", () => {
       expect(await res.text()).not.toContain(chopper.name);
     }
   });
+
+  it("puts the club rating to work in finding someone, closest to your own first", async () => {
+    // a pool at a venue no other check plays at, so the order is this check's own;
+    // the strong player's name sorts first, so only the rating can put close first
+    const [viewer, close, strong] = [await member("rate_me"), await member("z_close"), await member("a_strong")];
+    for (const m of [viewer, close, strong]) await setProfile(m.who, { venues: "goulburn" });
+    // the strong player wins six confirmed matches against members outside the pool
+    for (let i = 0; i < 6; i++) {
+      const beaten = await member(`rate_beaten${i}`);
+      const report = formWith(await visit("/matches", strong.who), "opponent");
+      const fields = { ...quickPicks(report), opponent: beaten.username, playedOn: yesterday(), mine: "3", theirs: "0" };
+      expect((await submit(report, fields, strong.who)).status).toBe(303);
+      expect((await submit(formTo(await visit("/matches", beaten.who), "/confirm"), {}, beaten.who)).status).toBe(303);
+    }
+
+    const page = await visit("/players?venue=goulburn&style=&order=rating", viewer.who);
+    const cards = [...page.querySelectorAll("li.player-card")].map((li) => li.textContent ?? "");
+    const at = (name: string) => cards.findIndex((card) => card.includes(name));
+    expect(at(close.name), "the closest-rated member isn't listed").toBeGreaterThanOrEqual(0);
+    expect(at(strong.name), "the strong member isn't listed").toBeGreaterThanOrEqual(0);
+    expect(at(close.name), "closest to my rating isn't first").toBeLessThan(at(strong.name));
+    expect(cards[at(strong.name)], "the card doesn't show the club rating").toMatch(/club rating\D*1[5-9]\d\d/i);
+    expect(page.querySelector('select[name="order"]'), "no way to order players by rating").not.toBeNull();
+  });
 });
+
+// A day back: in the past wherever this runs, so a match can be recorded on it.
+function yesterday(): string {
+  const d = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
