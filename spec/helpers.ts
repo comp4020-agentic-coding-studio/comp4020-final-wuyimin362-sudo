@@ -125,7 +125,7 @@ export async function openPage(path: string, who: Visitor, options: { refuseReco
   const res = await fetch(url, { headers: cookieHeader(who) });
   expect(res.status, `GET ${path}`).toBe(200);
   const errors: string[] = [];
-  type Stream = { readyState: number; drop(): void; close(): void };
+  type Stream = { readyState: number; path: string; drop(): void; close(): void };
   const streams: Stream[] = [];
   let refusals = options.refuseReconnects ?? 0;
   // one promise per stream the page opens, settled when it's connected or refused
@@ -155,6 +155,10 @@ export async function openPage(path: string, who: Visitor, options: { refuseReco
           let connected = () => {};
           connecting.push(new Promise<void>((resolve) => (connected = resolve)));
           void this.#connect(connected, false);
+        }
+        // the address the page asked to listen on
+        get path() {
+          return this.#url.pathname;
         }
         async #connect(connected: () => void, reopening: boolean) {
           this.#controller = new AbortController();
@@ -233,6 +237,8 @@ export async function openPage(path: string, who: Visitor, options: { refuseReco
       }
     },
     openStreams: () => streams.filter((s) => s.readyState !== 2).length,
+    // how many open streams the page holds to this address
+    streamsTo: (path: string) => streams.filter((s) => s.readyState !== 2 && s.path === path).length,
     dropStreams() {
       for (const stream of streams) if (stream.readyState !== 2) stream.drop();
     },
