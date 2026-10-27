@@ -188,6 +188,21 @@ h3 {
   color: #fff;
 }
 
+/* shown while a page's live updates are down and it's trying to reconnect */
+.live-lost {
+  margin: 0;
+  padding: 8px 20px;
+  border-bottom: 1px solid var(--line);
+  background: var(--blue-wash);
+  color: var(--text);
+  font-size: 0.82rem;
+  text-align: center;
+}
+
+.live-lost[hidden] {
+  display: none;
+}
+
 .actions {
   display: flex;
   flex-wrap: wrap;

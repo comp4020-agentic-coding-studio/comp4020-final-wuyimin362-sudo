@@ -219,7 +219,6 @@ const aspectKeys = Object.keys(aspects) as Aspect[];
         // whichever of the same parts changed when a game is posted, taken or
         // withdrawn.
         (() => {
-          if (!("EventSource" in window)) return;
           let busy = false;
           let again = false;
           const refresh = async () => {
@@ -232,11 +231,7 @@ const aspectKeys = Object.keys(aspects) as Aspect[];
               const res = await fetch(location.pathname, { headers: { accept: "text/html" } });
               if (!res.ok) return;
               const fresh = new DOMParser().parseFromString(await res.text(), "text/html");
-              for (const id of ["profile-head", "profile-details"]) {
-                const next = fresh.getElementById(id);
-                const current = document.getElementById(id);
-                if (next && current && next.outerHTML !== current.outerHTML) current.replaceWith(next);
-              }
+              window.swap(fresh, ["profile-head", "profile-details"]);
             } catch {
               // the next change, or a reload, catches up
             } finally {
@@ -247,13 +242,7 @@ const aspectKeys = Object.keys(aspects) as Aspect[];
               }
             }
           };
-          const source = new EventSource("/live/board");
-          let opened = false;
-          source.addEventListener("change", refresh);
-          source.addEventListener("open", () => {
-            if (opened) refresh();
-            opened = true;
-          });
+          window.live?.("/live/board", refresh);
         })();
       </script>
     )

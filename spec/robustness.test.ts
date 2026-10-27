@@ -63,7 +63,10 @@ describe.skipIf(live)("holding up", () => {
     const note = `spec reconnected ${crypto.randomUUID().slice(0, 8)}`;
     await postGame(await join("Spec while down"), note);
     expect(await page.shows(note, 15 * SECOND), "the page never caught up after its stream came back").toBeDefined();
-    expect(page.text(), "the page still says it's reconnecting").not.toContain("Reconnecting");
+    const notice = [...page.document.querySelectorAll("[role=status], [hidden]")].find((el) =>
+      el.textContent?.includes("Reconnecting"),
+    );
+    expect(notice?.hasAttribute("hidden"), "the page still says it's reconnecting").toBe(true);
     page.close();
   });
 

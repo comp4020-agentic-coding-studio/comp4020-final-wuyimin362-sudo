@@ -1,0 +1,119 @@
+---
+// What every live page shares, written once and rendered inline so a page's
+// scripts are all there to read (no page loads an external script).
+//
+// window.live(stream, refresh) keeps a page listening on one stream and calls
+// refresh() whenever it changes, and once more after any gap, so a page that
+// missed something catches up. It holds up to what a browser does to a page:
+// - Left for the back button: the stream is let go when the page is hidden,
+//   and opened again, with a catch-up, when the page is shown, so pages kept
+//   in the browser's back/forward cache don't hold connections open.
+// - Refused: Chrome gives up on a stream the server refuses (as Fly's proxy
+//   does while a machine restarts), so this tries again, waiting a little
+//   longer each time up to half a minute, and says "Reconnecting" in the page
+//   until the stream is back.
+//
+// window.swap(fresh, ids) replaces each element with one of those ids by its
+// fresh copy, only where it changed, so focus stays put on anything untouched,
+// and says whether anything did.
+//
+// Every form on the page also sends once: a second press while the first is
+// on its way, which a slow connection invites, does nothing, and the button
+// says it's busy. A form the browser's own checks stop never counts as sent.
+// Without JavaScript none of this runs, and every page still works.
+interface Props {
+  // a page that must have no way to send anything (the venues page) gets only
+  // the part about forms, which sends nothing
+  formsOnly?: boolean;
+}
+const { formsOnly = false } = Astro.props;
+---
+
+<p class="live-lost" data-live-lost role="status" hidden>Live updates paused. Reconnecting…</p>
+<script is:inline>
+  (() => {
+    // on the document, so it covers forms further down the page and any a live
+    // update swaps in; the browser's own checks run first, so a form they stop
+    // never gets here
+    document.addEventListener("submit", (event) => {
+      const form = event.target;
+      if (!(form instanceof HTMLFormElement)) return;
+      if (form.dataset.sent) {
+        event.preventDefault();
+        return;
+      }
+      form.dataset.sent = "true";
+      for (const button of form.querySelectorAll('button[type="submit"], button:not([type])')) {
+        button.disabled = true;
+        button.setAttribute("aria-busy", "true");
+      }
+    });
+    // a page come back to through the back button may hold a form already sent
+    window.addEventListener("pageshow", (event) => {
+      if (!event.persisted) return;
+      for (const form of document.forms) {
+        delete form.dataset.sent;
+        for (const button of form.querySelectorAll("button[aria-busy]")) {
+          button.disabled = false;
+          button.removeAttribute("aria-busy");
+        }
+      }
+    });
+  })();
+</script>
+{
+  !formsOnly && (
+    <script is:inline>
+      (() => {
+        const lost = document.querySelector("[data-live-lost]");
+        window.swap = (fresh, ids) => {
+          let changed = false;
+          for (const id of ids) {
+            const next = fresh.getElementById(id);
+            const current = document.getElementById(id);
+            if (next && current && next.outerHTML !== current.outerHTML) {
+              current.replaceWith(next);
+              changed = true;
+            }
+          }
+          return changed;
+        };
+        window.live = (path, refresh) => {
+          if (!("EventSource" in window)) return;
+          let source;
+          let retry;
+          let wait = 2000;
+          const stop = () => {
+            clearTimeout(retry);
+            source?.close();
+            source = undefined;
+          };
+          const start = (catchUp) => {
+            stop();
+            source = new EventSource(path);
+            let opened = false;
+            source.addEventListener("change", refresh);
+            source.addEventListener("open", () => {
+              wait = 2000;
+              if (lost) lost.hidden = true;
+              if (opened || catchUp) refresh();
+              opened = true;
+            });
+            source.addEventListener("error", () => {
+              // the browser retries a stream that merely dropped; one it closed was refused
+              if (!source || source.readyState !== EventSource.CLOSED) return;
+              if (lost) lost.hidden = false;
+              retry = setTimeout(() => start(true), wait);
+              wait = Math.min(wait * 2, 30000);
+            });
+          };
+          window.addEventListener("pagehide", stop);
+          window.addEventListener("pageshow", (event) => {
+            if (event.persisted) start(true);
+          });
+          start(false);
+        };
+      })();
+    </script>
+  )
+}

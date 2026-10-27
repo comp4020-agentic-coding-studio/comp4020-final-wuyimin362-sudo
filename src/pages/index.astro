@@ -243,10 +243,10 @@ const problem = pick(problems, Astro.url.searchParams.get("problem"));
     // The board stays live: when anyone posts, takes or withdraws a game, the
     // server says so on /live/board, and this page fetches itself again and
     // swaps in whichever lists changed, leaving the rest (and focus in them)
-    // alone. After a dropped connection it catches up once it reconnects.
-    // Without JavaScript the board still works, after a reload.
+    // alone. window.live (src/components/LiveScript.astro) keeps the stream
+    // up and catches the page up after any gap. Without JavaScript the board
+    // still works, after a reload.
     (() => {
-      if (!("EventSource" in window)) return;
       const status = document.querySelector("[data-live-status]");
       let busy = false;
       let again = false;
@@ -259,16 +259,9 @@ const problem = pick(problems, Astro.url.searchParams.get("problem"));
         try {
           const res = await fetch(location.pathname, { headers: { accept: "text/html" } });
           const fresh = new DOMParser().parseFromString(await res.text(), "text/html");
-          let changed = false;
-          for (const id of ["open-games", "games-on", "recent-games"]) {
-            const next = fresh.getElementById(id);
-            const current = document.getElementById(id);
-            if (next && current && next.outerHTML !== current.outerHTML) {
-              current.replaceWith(next);
-              changed = true;
-            }
+          if (window.swap(fresh, ["open-games", "games-on", "recent-games"]) && status) {
+            status.textContent = "The board just changed.";
           }
-          if (changed && status) status.textContent = "The board just changed.";
         } catch {
           // the next change, or a reload, catches up
         } finally {
@@ -279,13 +272,7 @@ const problem = pick(problems, Astro.url.searchParams.get("problem"));
           }
         }
       };
-      const source = new EventSource("/live/board");
-      let opened = false;
-      source.addEventListener("change", refresh);
-      source.addEventListener("open", () => {
-        if (opened) refresh();
-        opened = true;
-      });
+      window.live?.("/live/board", refresh);
     })();
   </script>
 </Base>

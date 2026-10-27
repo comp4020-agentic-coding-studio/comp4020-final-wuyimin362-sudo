@@ -2,6 +2,7 @@
 // Every page's frame: the landmarks, the app's name, who's signed in, and the
 // note that this is not the club's own site.
 import "../styles.css";
+import LiveScript from "../components/LiveScript.astro";
 import { invitationsFor } from "../lib/games";
 import { waitingFor } from "../lib/matches";
 import { currentPlayer, isGuest } from "../lib/players";
@@ -106,6 +107,8 @@ const invited = player && !isGuest(player) ? invitationsFor(player.id).length : 
         </div>
       </div>
     </header>
+    {/* before the page itself, whose scripts use what it defines */}
+    <LiveScript formsOnly={quiet} />
     <slot />
     <footer class="site-footer">
       <p>An unofficial board for ACT table tennis club members. It isn't run by the club.</p>
@@ -126,7 +129,6 @@ const invited = player && !isGuest(player) ? invitationsFor(player.id).length : 
             // is lost. Without JavaScript the counts and lists catch up on the
             // next page load.
             (() => {
-              if (!("EventSource" in window)) return;
               const status = document.querySelector("[data-live-me-status]");
               let busy = false;
               let again = false;
@@ -149,13 +151,8 @@ const invited = player && !isGuest(player) ? invitationsFor(player.id).length : 
                       changed = true;
                     }
                   }
-                  for (const area of document.querySelectorAll("[data-live-area]")) {
-                    const next = fresh.getElementById(area.id);
-                    if (next && next.outerHTML !== area.outerHTML) {
-                      area.replaceWith(next);
-                      changed = true;
-                    }
-                  }
+                  const areas = [...document.querySelectorAll("[data-live-area]")].map((area) => area.id);
+                  if (window.swap(fresh, areas)) changed = true;
                   if (changed && status) status.textContent = "This page just changed.";
                 } catch {
                   // the next change, or a reload, catches up
@@ -167,13 +164,7 @@ const invited = player && !isGuest(player) ? invitationsFor(player.id).length : 
                   }
                 }
               };
-              const source = new EventSource("/live/me");
-              let opened = false;
-              source.addEventListener("change", refresh);
-              source.addEventListener("open", () => {
-                if (opened) refresh();
-                opened = true;
-              });
+              window.live("/live/me", refresh);
             })();
           </script>
         </>
