@@ -24,7 +24,12 @@ const COOKIE = "session";
 const SESSION_DAYS = 30;
 
 const cleanName = (raw: string) => raw.trim().replace(/\s+/g, " ");
-const validName = (name: string) => name !== "" && name.length <= NAME_MAX;
+// characters that draw nothing: format characters (zero-width space, word
+// joiner), spaces, and the Hangul and Braille fillers Unicode counts as letters
+const INVISIBLE = /[\p{Cf}\p{Zs}ᅟᅠㅤﾠ⠀]/gu;
+// a name has to have something in it anyone could see, or the board shows a
+// game posted by no one
+const validName = (name: string) => name.replace(INVISIBLE, "") !== "" && name.length <= NAME_MAX;
 const cleanUsername = (raw: string) => raw.trim().toLowerCase();
 const validUsername = (username: string) => /^[a-z0-9_]{3,20}$/.test(username);
 const newId = () => randomBytes(6).toString("base64url");
