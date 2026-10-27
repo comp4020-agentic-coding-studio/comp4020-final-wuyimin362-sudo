@@ -1,133 +1,125 @@
 # Process overview
 
-This is the project as it stands at crit 9 (All at once), rewritten rather than
-added to. Two Claude Code sessions did the work, on 6–7 and 12–13 October. The
-agent did most of the typing: the code, the tests, `CLAUDE.md`, the decision
-records, the README, this overview and my reflections are its drafts, made at my
-request from my decisions, and the commits say so.
+This is the project as submitted, rewritten rather than added to. The work ran
+in Claude Code sessions on 6–7, 12–13 and 26–27 October. The agent did nearly
+all of the typing: code, checks, `CLAUDE.md`, decision records, and drafts of
+this file, the README and my reflections. Every commit it drafted from my
+answers says so. My part was the calls: what the app is for, what to cut,
+which option to take when the agent laid them out, and when to overrule it.
 
-## From the brief to one interaction, and back
+## From the brief to one claim
 
-My idea was an app for ACT table tennis club members: profiles with kit,
-ratings, opponents' reviews, a six-sided strength chart, private messages,
-nearby players, and sign-ups for official tournaments.
+My first idea was everything a table tennis club app could have: profiles with
+kit, ratings, opponents' reviews, a strength chart, messages, nearby players,
+tournament sign-ups. The agent checked that list against the brief and flagged
+it as the median answer, so the first version was only posting a game and
+someone taking it
+([`cbbaf92...d8c930f`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-wuyimin362-sudo/compare/cbbaf92...d8c930f)).
+The rest came back one feature at a time, each with a limit
+([`fb23045...8aab19b`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-wuyimin362-sudo/compare/fb23045...8aab19b)).
 
-The agent flagged four problems against the brief: private messages are close to
-the "chat room with the nouns swapped" it warns against, "nearby" needs
-locations, an unofficial app shouldn't take official entries, and most of it is
-asynchronous. I cut the first version to posting a game and someone taking it,
-then brought the whole idea back, each feature limited against its problem.
+A review two weeks before the deadline said the README still read as that
+wishlist, with multi-user and real-time as requirements met rather than the
+idea. I agreed. The rewrite
+([`93219ae`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-wuyimin362-sudo/commit/93219ae))
+argues one thing: the club already asks "anyone free Thursday?" in a group
+chat, where the question scrolls away and three people answer. On the board an
+offer is taken once, by the first to accept, in front of everyone. That made
+[decision record 1](docs/adr/0001-first-to-accept-takes-the-game.md)'s race the
+point of the app rather than its cost.
 
-Where I steered rather than accepted: the club itself, the Apple look (I pointed
-the agent at the apple-design-skill), the venues (I sent it to Table Tennis
-ACT's site, then added NSW clubs), and putting accounts first.
+My reading, where it changed something: Shirky's situated software is why a
+name is enough to join, and also where I stop trusting the club. A disputed
+score isn't settled by trust, so a result waits for the opponent. Sloan's
+home-cooked app is why there is no email or password reset. I dropped two
+sources the README cited but no decision came from.
 
-## Decisions, and what they cost
+## The stack, and what it cost
 
-**Two kinds of person.** A guest is a name and a cookie, so a pod-mate can try
-the board in one field; a member adds a username and password and keeps their
-games across devices, but with no email can't reset a forgotten password
-([`fb23045...a10bebb`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-wuyimin362-sudo/compare/fb23045...a10bebb)).
-
-**The stack: Astro's Node server, with SQLite on the Fly volume**
+Astro's Node server rendering every page, SQLite on the Fly volume through
+Drizzle
 ([`140eb0b`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-wuyimin362-sudo/commit/140eb0b)).
-The honest reason is familiarity: my crit 7 repo already ran it on the same Fly
-shape, one 256 MB machine and one volume, so I didn't seriously compare
-alternatives. I bet server-sent events from one machine would carry crit 9, and
-they have: every change is already a form post, so a stream only names what
-changed and the open page fetches itself again. The cost is that two machines
-would need a shared bus instead of an in-memory one.
+The honest first reason was familiarity: my crit 7 repo ran the same shape. I
+kept it because the brief's constraints suit it. One 256 MB machine and one
+volume favour one process and one file; every action is a form post answered
+with a 303, so the app works without JavaScript; and live updates are
+server-sent events from an in-memory bus, where a stream names what changed and
+the page fetches itself again
+([`247f3a3...edc850a`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-wuyimin362-sudo/compare/247f3a3...edc850a)).
+WebSockets would add a second protocol for traffic that only flows one way.
 
-**Each feature's limit, and what it costs:**
+The cost is that two machines would need a shared bus, and that each change
+makes every open page refetch. For a club that's cheap; it would be the first
+thing to change at scale.
 
-- Profiles are members-only; a marker has to sign up to see one
-  ([`5b62c2a...a61dc5d`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-wuyimin362-sudo/compare/5b62c2a...a61dc5d)).
-- "Near you" means sharing a usual venue, so nobody's location is needed
-  ([`14b9ebc...45e1bee`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-wuyimin362-sudo/compare/14b9ebc...45e1bee)).
-- A match counts only once the opponent confirms it, and the rating is replayed
-  from confirmed matches, never stored, so it can't drift
-  ([`8038b02...3389437`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-wuyimin362-sudo/compare/8038b02...3389437)).
-- Reviews come only from a confirmed opponent, and the hexagon waits for three;
-  comments carry the reviewer's name, trading candour for accountability
-  ([`d90ad6a...f023ebf`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-wuyimin362-sudo/compare/d90ad6a...f023ebf)).
-- An invitation is a game with one invitee, reusing the guarded accept, and each
-  game with two players has a thread only they can read
-  ([`c187611...c4f8c4d`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-wuyimin362-sudo/compare/c187611...c4f8c4d)).
-  I asked for that thread to work like WeChat, with a profile behind each
-  picture, emoji, and inviting others in. The agent warned that copying a
-  messenger risks the chat room the brief warns against, and split it: the
-  interface now, with a card that keeps the profile's limits and replies sent
-  in one press; more players for crit 10, since they change rules `CLAUDE.md`
-  sets
-  ([`7ecd885...919471f`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-wuyimin362-sudo/compare/7ecd885...919471f)).
-- Official events link out and take no entries
-  ([`9e956d4...8aab19b`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-wuyimin362-sudo/compare/9e956d4...8aab19b)).
+## Decisions about several people at once
 
-**Several people at once.** Crit 9 asked for one decision about several people
-using the app at once; two records answer it. Both times the agent laid out
-options and recommended one, and I took it.
-
-- [Decision record 1](docs/adr/0001-first-to-accept-takes-the-game.md): the
-  first accept takes a game. It's one guarded update, so two people pressing
-  Accept at once can't both get it; a host who wants a particular opponent
-  invites them instead. It favours whoever is quick, and choosing takes an
-  account. This week the agent found its second reason quoting a README line
-  that
-  [`716139b`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-wuyimin362-sudo/commit/716139b)
-  had replaced before the record was written; I picked a new reason from the
-  current README, and the agent rewrote the record around it
-  ([`b46aaee`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-wuyimin362-sudo/commit/b46aaee)).
-- [Decision record 2](docs/adr/0002-what-reaches-people-live.md): what reaches
-  people live. The board and each game's thread went live first
-  ([`247f3a3...edc850a`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-wuyimin362-sudo/compare/247f3a3...edc850a)),
-  then whatever one member is waiting on another for: an invitation and its
-  answer, a match report and its confirmation, each on a stream only that
-  member can open
-  ([`0045e74...2902da7`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-wuyimin362-sudo/compare/0045e74...2902da7)).
-  Event interest, reviews and profiles wait for a reload, because nobody is
-  waiting on them
+- **Who gets a game:** the first accept, as one guarded update, so two
+  people pressing at once can't both get it
+  ([decision record 1](docs/adr/0001-first-to-accept-takes-the-game.md)).
+- **What goes live:** at crit 9 I argued only what someone waits on should be
+  live, and said in my reflection that I'd defend it
   ([`7be49ce`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-wuyimin362-sudo/commit/7be49ce)).
+  I changed my mind. The brief's definition has no exception, and a marker
+  chooses which two pages to open, so everything shown is now live
+  ([`e959cb1...eafb2e3`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-wuyimin362-sudo/compare/e959cb1...eafb2e3),
+  [decision record 3](docs/adr/0003-everything-shown-is-live.md)). "Who is
+  waiting on whom" still decides what each member's own stream carries.
+- **Who may see and change what**, and why a game has two players: I had asked
+  for a WeChat-style thread others could be invited into; I decided against it,
+  because a group thread is the chat the brief warns about
+  ([decision record 4](docs/adr/0004-who-may-see-and-change-what.md)).
 
-## How the work was checked
+## How I knew it was right
 
-The deploy path came first: the course placeholder went to Fly before any code
-existed. Every feature then started as a failing check that drives the app
-through its own forms, and went green before merging; there are 38 now. They
-write data, so they run in CI's throwaway container, not against the live site.
+Every feature began as a failing check that drives the app through its own
+forms, then went green; there are 55. They write data, so they run in CI's
+throwaway container. Checks can't see a page drawn, so every interface change
+was also checked in headless Chrome at both marking viewports.
 
-The checks never run a page's scripts or draw a page, so each change was also
-checked in headless Chrome at both marking viewports: a posted game reached an
-open board in 64 ms, an invitation an open invites page in 11 ms, and a match
-report an open matches page in 21 ms, with no reload. Screenshots also caught
-what the checks couldn't: a sentence naming the reporter twice
-([`534ea43`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-wuyimin362-sudo/commit/534ea43)),
-and the chat's row of quick replies widening a phone's page to 711 pixels.
-
-This crit's session found the live board never deployed: `main` and the live
-site were still at crit 8. It and the chat rework went in through pull requests,
-so CI ran the whole suite first; `main` was only fast-forwarded, keeping cited
-SHAs. Claude Code's permission check stopped the agent's first
-push to `main`, which deploys, until I said to go ahead.
+Before the deadline I had two reviews run separately from the work: one read
+the repo as a marker would, one tried to break the app. The second found what
+my checks had missed, and each finding went into the harness as a red check
+first: three presses of Post game made three games, pages kept for the back
+button held their streams open, and a stream the server refused was never
+retried
+([`6cff876...44655c2`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-wuyimin362-sudo/compare/6cff876...44655c2)).
+A guest named only in zero-width spaces showed as no one
+([`a990b48...4c376bb`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-wuyimin362-sudo/compare/a990b48...4c376bb)).
+The first review's point that the rating and reviews never helped anyone find
+an opponent made the players page order by closeness of rating
+([`eb86198...e2e8ed2`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-wuyimin362-sudo/compare/eb86198...e2e8ed2)).
+Where a reviewer's finding didn't reproduce, as with focus hidden under the
+header on desktop, the commit says so rather than claiming a fix
+([`d794d30`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-wuyimin362-sudo/commit/d794d30)).
 
 ## Mistakes that went into the harness
 
-- Three times a check was wrong rather than the code, and each fix got its own
-  commit
-  ([`6aa8f0d`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-wuyimin362-sudo/commit/6aa8f0d),
-  [`1a8e884`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-wuyimin362-sudo/commit/1a8e884),
-  [`ee0a8d3`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-wuyimin362-sudo/commit/ee0a8d3)).
-  The last came when I asked for English everywhere: the Chinese on screen came
-  from the browser's own pickers, and replacing them broke sixteen checks
-  that found forms by a field's name. They now find a form by where it posts,
-  and one that had passed whatever the page showed tests something again.
-- drizzle-kit couldn't tell a dropped column from a renamed one, so `CLAUDE.md`
-  says to split such changes into an add and a drop.
-- The agent stranded a `CLAUDE.md` sentence about confirming matches under the
-  wrong rule; it went back in
-  [`7be49ce`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-wuyimin362-sudo/commit/7be49ce).
+- **A check too narrow.** The venues page promises to send no location, but
+  its check read the page only as a stranger; a member's page carried the live
+  stream's script. The check now reads it as all three kinds of visitor
+  ([`521861a...c929d05`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-wuyimin362-sudo/compare/521861a...c929d05)).
+- **Checks wrong, not the code**, each fixed in its own commit: a guest marker
+  matched by text
+  ([`6aa8f0d`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-wuyimin362-sudo/commit/6aa8f0d)),
+  forms found by a field's name, which broke sixteen checks when the pickers
+  changed
+  ([`ee0a8d3`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-wuyimin362-sudo/commit/ee0a8d3)),
+  listening checked by the text of the code rather than a stream opened
+  ([`e46748c`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-wuyimin362-sudo/commit/e46748c)),
+  and a rating check whose setup gave the "closest" player no rating at all
+  ([`7d3d022`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-wuyimin362-sudo/commit/7d3d022)).
+- **Checks that could pass for another file's reason.** Real-time checks share
+  streams, so the spec runs one file at a time
+  ([`bc0997c`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-wuyimin362-sudo/commit/bc0997c)).
+- **Rules that already held.** Where a check covered a rule the code kept, it
+  couldn't land red, so I broke the rule once on purpose to see it fail
+  ([`b29333a`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-wuyimin362-sudo/commit/b29333a),
+  [`41f1e1b`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-wuyimin362-sudo/commit/41f1e1b)).
 
-## Next
+## What the logs are for
 
-The README has to come down towards 600 words. Crit 10 needs logging of who did
-what, and a decision about who may see and change what, which is where more
-players in a game belong.
+Crit 10 asked me to narrate two classmates' use from the server's logs, and
+the app logged nothing then. It now logs every action and refusal by player id,
+never a name or anything typed
+([`ded6304...e9c4bae`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-wuyimin362-sudo/compare/ded6304...e9c4bae)).
