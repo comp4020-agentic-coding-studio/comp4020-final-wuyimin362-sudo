@@ -55,8 +55,10 @@ a {
   color: var(--blue);
 }
 
+/* solid blue, about 5.6:1 against the white and grey surfaces, so the ring
+   clears the 3:1 a focus indicator needs */
 :focus-visible {
-  outline: 3px solid rgb(0 102 204 / 0.6);
+  outline: 3px solid var(--blue);
   outline-offset: 2px;
 }
 
@@ -81,8 +83,10 @@ h3 {
 }
 
 /* --- the frosted bar along the top, as on apple.com -------------------- */
+/* It stays at the top only on wider screens (see the end of this file), where
+   it's one row; on a phone it wraps to three and would hide whatever has focus
+   under it, so there it scrolls away with the page. */
 .global-nav {
-  position: sticky;
   top: 0;
   z-index: 10;
   border-bottom: 1px solid rgb(0 0 0 / 0.08);
@@ -484,6 +488,24 @@ select:focus-visible {
   font-size: clamp(1.8rem, 1.4rem + 2vw, 2.4rem);
   font-weight: 700;
   line-height: 1.1;
+}
+
+/* A name is whatever someone typed, up to 40 characters with no spaces, and it
+   turns up in headings, cards, lists and invitations, so any text on a page may
+   break anywhere rather than widen it. The boxes that hold names in a grid or a
+   row may shrink below their longest word, or the break never happens. */
+main,
+.global-nav,
+.player-card-pop {
+  overflow-wrap: anywhere;
+}
+
+.game,
+.profile-head > div,
+.chat-title,
+.card-head > div,
+.kit dd {
+  min-width: 0;
 }
 
 .profile-head p {
@@ -1181,6 +1203,16 @@ textarea:focus-visible {
 
 /* --- wider screens ----------------------------------------------------- */
 @media (min-width: 734px) {
+  /* one row here, so it can stay at the top, with room kept under it for
+     whatever the keyboard moves to */
+  html {
+    scroll-padding-top: 72px;
+  }
+
+  .global-nav {
+    position: sticky;
+  }
+
   .hero {
     padding: 88px 0 56px;
   }
