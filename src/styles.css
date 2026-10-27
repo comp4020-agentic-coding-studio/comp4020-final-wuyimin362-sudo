@@ -1244,7 +1244,8 @@ textarea:focus-visible {
   }
 
   .filter-form {
-    grid-template-columns: 1fr 1fr auto;
+    grid-template-columns: 1fr 1fr 1fr auto;
+    align-items: end;
   }
 
   .hexagon-wrap {

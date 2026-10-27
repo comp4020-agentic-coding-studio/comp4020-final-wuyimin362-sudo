@@ -1,7 +1,9 @@
 import { and, eq, isNotNull, ne } from "drizzle-orm";
 import { db } from "./db";
 import { publish } from "./live";
+import { RATING_START, ratings } from "./matches";
 import type { Player } from "./players";
+import { standingOf, strengthsFrom } from "./reviews";
 import { avatars, homeVenues, players } from "./schema";
 import { venues } from "./venues";
 
@@ -103,8 +105,14 @@ export function photoOf(playerId: string) {
 
 // Other members, for finding someone to play. "near" means sharing one of the
 // viewer's usual venues, so it's worked out from venues, never from anyone's
-// location; "" means anywhere. A club is small enough to filter in memory.
-export function findMembers(viewerId: string, where: { venue: string; style: string }) {
+// location; "" means anywhere. Each comes with their unofficial club rating,
+// if they have one, and the strengths their opponents name, which show only
+// once three different opponents have reviewed them. "rating" orders them
+// closest to the viewer's own rating first, so a member can find an even
+// game; anyone without a rating yet comes after, by name, rather than being
+// ranked by a number they never earned. A club is small enough to do this in
+// memory.
+export function findMembers(viewerId: string, where: { venue: string; style: string; order?: string }) {
   const members = db
     .select({
       id: players.id,
@@ -130,11 +138,26 @@ export function findMembers(viewerId: string, where: { venue: string; style: str
   );
   const wanted =
     where.venue === "near" ? new Set(venuesOf.get(viewerId)) : where.venue ? new Set([where.venue]) : undefined;
-  return members
-    .map((m) => ({ ...m, venues: venuesOf.get(m.id) ?? [], photoVersion: photos.get(m.id) ?? null }))
+  const table = ratings();
+  const mine = table.get(viewerId)?.rating ?? RATING_START;
+  const found = members
+    .map((m) => {
+      const opinions = standingOf(m.id);
+      return {
+        ...m,
+        venues: venuesOf.get(m.id) ?? [],
+        photoVersion: photos.get(m.id) ?? null,
+        rating: table.get(m.id)?.rating,
+        strengths: opinions.shown ? strengthsFrom(opinions.averages) : [],
+      };
+    })
     .filter((m) => !wanted || m.venues.some((v) => wanted.has(v)))
     .filter((m) => !where.style || m.style === where.style)
     .sort((a, b) => a.name.localeCompare(b.name));
+  if (where.order !== "rating") return found;
+  const gap = (m: (typeof found)[number]) => (m.rating === undefined ? Infinity : Math.abs(m.rating - mine));
+  // a stable sort, so players the same distance away stay in name order
+  return found.sort((a, b) => gap(a) - gap(b));
 }
 
 export const usualVenues = (playerId: string) =>
