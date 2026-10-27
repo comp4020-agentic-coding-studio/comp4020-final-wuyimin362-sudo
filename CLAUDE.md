@@ -7,7 +7,7 @@ rules, the README changes first, then the rule.
 ## What the app must never do
 
 - Ask for an email address, or make anyone sign up just to try the board: a
-  guest joins with a name.
+  guest joins with a name, which has to have something in it anyone could see.
 - Send a visitor's location anywhere. Distance to venues is worked out in the
   browser by an inline script with no fetch, beacon or socket, and no page
   loads an external script. The venues page is quiet for everyone, members
@@ -80,10 +80,18 @@ rules, the README changes first, then the rule.
   members see of each other (event interest, profiles and photos, reviews,
   confirmed matches, new members) publishes `members`, which only a member's own
   stream carries. A new page that shows changing data marks it `data-live-area`
-  and gets a check in `spec/live-everywhere.test.ts`. The venues page is the one
-  exception, and shows nothing that changes.
+  and gets a check in `spec/live-everywhere.test.ts`. The two exceptions are in
+  the record: the venues page, which shows nothing that changes, and the player
+  card in a game's conversation, which isn't swapped while someone has it open.
+- A page listens only through `window.live` and swaps only through
+  `window.swap` (`src/components/LiveScript.astro`), so every live page lets go
+  of its streams when it's left, reconnects when the server refuses one, and
+  says so while it does. Every form sends once: a second press does nothing.
+  `spec/robustness.test.ts` holds this.
 - The club rating is replayed from confirmed matches every time it's shown.
-  Never store a rating that could drift from the record.
+  Never store a rating that could drift from the record. It is there to help
+  members find an even game, on the players page; a member without a confirmed
+  match has no rating, and is never ranked as if they had one.
 - Schema changes go through `pnpm db:generate` and a committed migration. An
   applied migration is never edited. If drizzle-kit asks whether a column was
   renamed, split the change into an add and a drop.
