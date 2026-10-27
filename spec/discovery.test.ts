@@ -112,25 +112,34 @@ describe.skipIf(live)("finding venues and players", () => {
 
   it("puts the club rating to work in finding someone, closest to your own first", async () => {
     // a pool at a venue no other check plays at, so the order is this check's own;
-    // the strong player's name sorts first, so only the rating can put close first
-    const [viewer, close, strong] = [await member("rate_me"), await member("z_close"), await member("a_strong")];
-    for (const m of [viewer, close, strong]) await setProfile(m.who, { venues: "goulburn" });
-    // the strong player wins six confirmed matches against members outside the pool
-    for (let i = 0; i < 6; i++) {
-      const beaten = await member(`rate_beaten${i}`);
-      const report = formWith(await visit("/matches", strong.who), "opponent");
-      const fields = { ...quickPicks(report), opponent: beaten.username, playedOn: yesterday(), mine: "3", theirs: "0" };
-      expect((await submit(report, fields, strong.who)).status).toBe(303);
-      expect((await submit(formTo(await visit("/matches", beaten.who), "/confirm"), {}, beaten.who)).status).toBe(303);
-    }
+    // names sort the other way from ratings, so only the rating can set the order
+    const [viewer, close, strong, unrated] = [
+      await member("rate_me"),
+      await member("z_close"),
+      await member("a_strong"),
+      await member("a_unrated"),
+    ];
+    for (const m of [viewer, close, strong, unrated]) await setProfile(m.who, { venues: "goulburn" });
+    const played = async (winner: typeof viewer, loser: typeof viewer) => {
+      const report = formWith(await visit("/matches", winner.who), "opponent");
+      const fields = { ...quickPicks(report), opponent: loser.username, playedOn: yesterday(), mine: "3", theirs: "0" };
+      expect((await submit(report, fields, winner.who)).status).toBe(303);
+      expect((await submit(formTo(await visit("/matches", loser.who), "/confirm"), {}, loser.who)).status).toBe(303);
+    };
+    // the viewer and the close player play each other once: about 16 points apart
+    await played(viewer, close);
+    // the strong player wins six against members outside the pool: about 90 up
+    for (let i = 0; i < 6; i++) await played(strong, await member(`rate_beaten${i}`));
 
     const page = await visit("/players?venue=goulburn&style=&order=rating", viewer.who);
     const cards = [...page.querySelectorAll("li.player-card")].map((li) => li.textContent ?? "");
     const at = (name: string) => cards.findIndex((card) => card.includes(name));
-    expect(at(close.name), "the closest-rated member isn't listed").toBeGreaterThanOrEqual(0);
-    expect(at(strong.name), "the strong member isn't listed").toBeGreaterThanOrEqual(0);
+    for (const m of [close, strong, unrated]) expect(at(m.name), `${m.name} isn't listed`).toBeGreaterThanOrEqual(0);
     expect(at(close.name), "closest to my rating isn't first").toBeLessThan(at(strong.name));
+    // nobody is ranked by a number they never earned: no rating yet, listed after
+    expect(at(strong.name), "a member with no rating was ranked among the rated").toBeLessThan(at(unrated.name));
     expect(cards[at(strong.name)], "the card doesn't show the club rating").toMatch(/club rating\D*1[5-9]\d\d/i);
+    expect(cards[at(unrated.name)], "an unrated member's card claims a rating").toMatch(/no club rating yet/i);
     expect(page.querySelector('select[name="order"]'), "no way to order players by rating").not.toBeNull();
   });
 });
