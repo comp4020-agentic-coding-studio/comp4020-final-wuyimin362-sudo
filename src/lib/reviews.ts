@@ -1,5 +1,6 @@
 import { and, desc, eq } from "drizzle-orm";
 import { db } from "./db";
+import { publish } from "./live";
 import type { Player } from "./players";
 import { matches, players, reviews } from "./schema";
 
@@ -83,6 +84,8 @@ export function saveReview(matchId: number, reviewer: Player, form: FormData): R
     if (isDuplicate(err)) return "gone";
     throw err;
   }
+  // a review shows on a profile, which only members can see
+  publish("members");
 }
 
 // The match ids this player has already reviewed.

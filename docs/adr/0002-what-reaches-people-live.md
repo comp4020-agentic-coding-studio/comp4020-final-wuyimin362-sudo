@@ -1,6 +1,8 @@
 # 2. What reaches people live, and what waits for a reload
 
-Status: accepted, 13 October 2026, for crit 9 ("All at once").
+Status: accepted, 13 October 2026, for crit 9 ("All at once"). Partly
+superseded on 26 October 2026 by [decision record 3](0003-everything-shown-is-live.md):
+event interest, reviews and profiles are live now too. The rest stands.
 
 ## Context
 

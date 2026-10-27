@@ -69,6 +69,16 @@ describe.skipIf(live)("accounts and guests", () => {
     expect(await hosts(elsewhere, note)).toBe(true);
   });
 
+  it("turns away a name with nothing in it anyone could see", async () => {
+    // zero-width space, word joiner, Hangul filler: each draws nothing, so the
+    // board would show a host with no name
+    for (const name of ["​​​", "⁠", "ㅤㅤ", " ​ "]) {
+      const res = await submit(formWith(await visit("/", stranger), "name"), { name }, stranger);
+      expect(res.headers.get("location"), `a guest could join as ${JSON.stringify(name)}`).toContain("problem=name");
+      expect(cookieFrom(res), "a blank name was given a session").toBe("");
+    }
+  });
+
   it("turns away a taken username and a wrong password", async () => {
     const id = fresh();
     const [username, password] = [`spec_${id}`, `right password ${id}`];

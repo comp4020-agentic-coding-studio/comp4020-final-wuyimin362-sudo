@@ -1,5 +1,6 @@
 import { and, eq, inArray } from "drizzle-orm";
 import { db } from "./db";
+import { publish } from "./live";
 import type { Player } from "./players";
 import { eventInterest, players } from "./schema";
 import { canberraNow } from "./time";
@@ -38,12 +39,15 @@ export const currentEvents = () => events.filter((e) => e.ends > canberraNow());
 
 export type Interest = "going" | "partner";
 
+// Who's going is for members only, so a change reaches them on what members
+// share.
 export function setInterest(eventId: string, player: Player, kind: string): boolean {
   if (!events.some((e) => e.id === eventId)) return false;
   if (kind === "none") {
     db.delete(eventInterest)
       .where(and(eq(eventInterest.eventId, eventId), eq(eventInterest.playerId, player.id)))
       .run();
+    publish("members");
     return true;
   }
   if (kind !== "going" && kind !== "partner") return false;
@@ -51,6 +55,7 @@ export function setInterest(eventId: string, player: Player, kind: string): bool
     .values({ eventId, playerId: player.id, kind })
     .onConflictDoUpdate({ target: [eventInterest.eventId, eventInterest.playerId], set: { kind } })
     .run();
+  publish("members");
   return true;
 }
 

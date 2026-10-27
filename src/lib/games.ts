@@ -1,4 +1,4 @@
-import { and, asc, eq, gt, inArray, isNotNull, isNull, ne, notInArray, or } from "drizzle-orm";
+import { and, asc, desc, eq, gt, inArray, isNotNull, isNull, lte, ne, notInArray, or } from "drizzle-orm";
 import { alias } from "drizzle-orm/sqlite-core";
 import { db } from "./db";
 import { publish, type Topic } from "./live";
@@ -13,6 +13,9 @@ type Kind = keyof typeof kinds;
 export const NOTE_MAX = 200;
 // how far ahead a game can be posted: about two months of club nights
 export const HORIZON_DAYS = 56;
+// how long a game stays on the board once its time has passed: long enough to
+// come back to, short enough that the board stays about what's coming
+export const KEPT_DAYS = 14;
 
 // What can go wrong with a request, as the board explains it (src/pages/index.astro).
 export type Problem = "time" | "venue" | "kind" | "note" | "gone" | "invitee";
@@ -23,7 +26,7 @@ const host = alias(players, "host");
 const guest = alias(players, "guest");
 const invited = alias(players, "invited");
 
-function gamesWhere(condition: ReturnType<typeof and>) {
+function gamesWhere(condition: ReturnType<typeof and>, newestFirst = false) {
   return db
     .select({
       id: games.id,
@@ -47,7 +50,7 @@ function gamesWhere(condition: ReturnType<typeof and>) {
     .leftJoin(guest, eq(games.guestId, guest.id))
     .leftJoin(invited, eq(games.invitedId, invited.id))
     .where(condition)
-    .orderBy(asc(games.startsAt), asc(games.id))
+    .orderBy(...(newestFirst ? [desc(games.startsAt), desc(games.id)] : [asc(games.startsAt), asc(games.id)]))
     .all();
 }
 
@@ -62,6 +65,23 @@ export const upcomingGames = () =>
       or(isNull(games.invitedId), eq(games.status, "accepted")),
     ),
   );
+
+// Games from the board whose time has passed in the last two weeks, latest
+// first: agreed ones, and open ones nobody took. They're a record of what
+// happened, so nothing can be done to them any more; a direct invitation that
+// was never accepted was never on the board, so it isn't here either.
+export const recentGames = () => {
+  const now = canberraNow();
+  return gamesWhere(
+    and(
+      notInArray(games.status, ["withdrawn", "declined"]),
+      lte(games.startsAt, now),
+      gt(games.startsAt, addDays(now, -KEPT_DAYS)),
+      or(isNull(games.invitedId), eq(games.status, "accepted")),
+    ),
+    true,
+  );
+};
 
 // Invitations still waiting for this player to answer.
 export const invitationsFor = (playerId: string) =>
@@ -164,12 +184,20 @@ export function declineInvitation(id: number, player: Player): Problem | undefin
   publish(`game:${id}`, ...invitationTopics(id));
 }
 
-// Only the host can withdraw, and only while nobody has taken the game.
+// Only the host can withdraw, and only while nobody has taken the game and
+// its time is still to come: after that it's a record of what happened.
 export function withdrawGame(id: number, player: Player): Problem | undefined {
   const { changes } = db
     .update(games)
     .set({ status: "withdrawn" })
-    .where(and(eq(games.id, id), eq(games.hostId, player.id), inArray(games.status, ["open"])))
+    .where(
+      and(
+        eq(games.id, id),
+        eq(games.hostId, player.id),
+        inArray(games.status, ["open"]),
+        gt(games.startsAt, canberraNow()),
+      ),
+    )
     .run();
   if (changes !== 1) return "gone";
   publish("board", `game:${id}`, ...invitationTopics(id));

@@ -9,6 +9,7 @@ import {
   listen,
   live,
   member,
+  openPage,
   postGame,
   quickPicks,
   stranger,
@@ -102,8 +103,9 @@ describe.skipIf(live)("real-time", () => {
   });
 
   it("has the board page actually listening", async () => {
-    const board = [...(await visit("/", stranger)).querySelectorAll("script")].map((s) => s.textContent).join("\n");
-    expect(board).toContain('new EventSource("/live/board")');
+    const board = await openPage("/", stranger);
+    expect(board.streamsTo("/live/board"), "the board opened no stream to /live/board").toBe(1);
+    board.close();
   });
 
   it("tells a member within a second when they're invited, the host when they answer, and nobody else", async () => {
@@ -161,8 +163,9 @@ describe.skipIf(live)("real-time", () => {
   it("has a member's pages listening for their own invitations and matches", async () => {
     const { who } = await member("me_page");
     for (const path of ["/", "/invites", "/matches"]) {
-      const scripts = [...(await visit(path, who)).querySelectorAll("script")].map((s) => s.textContent).join("\n");
-      expect(scripts, `${path} doesn't listen for the member's own changes`).toContain('new EventSource("/live/me")');
+      const page = await openPage(path, who);
+      expect(page.streamsTo("/live/me"), `${path} doesn't listen for the member's own changes`).toBe(1);
+      page.close();
     }
   });
 });

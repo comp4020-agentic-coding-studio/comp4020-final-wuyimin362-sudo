@@ -1,11 +1,12 @@
 ---
-// The board: every game still to come, and the forms to join, post a game and
-// take one up. It all works without JavaScript: each action is a form POST that
-// comes back here with a 303 and a line saying what happened.
+// The board: every game still to come, the last two weeks of games whose time
+// has passed, and the forms to join, post a game and take one up. It all works
+// without JavaScript: each action is a form POST that comes back here with a
+// 303 and a line saying what happened.
 import GameFields from "../components/GameFields.astro";
 import PlayerName from "../components/PlayerName.astro";
 import Base from "../layouts/Base.astro";
-import { HORIZON_DAYS, kinds, NOTE_MAX, upcomingGames } from "../lib/games";
+import { HORIZON_DAYS, KEPT_DAYS, kinds, NOTE_MAX, recentGames, upcomingGames } from "../lib/games";
 import { currentPlayer, isGuest, NAME_MAX } from "../lib/players";
 import { formatWhen } from "../lib/time";
 import { venueLabel } from "../lib/venues";
@@ -14,6 +15,7 @@ const player = currentPlayer(Astro.cookies);
 const games = upcomingGames();
 const open = games.filter((g) => g.status === "open");
 const on = games.filter((g) => g.status === "accepted");
+const recent = recentGames();
 
 const notices: Record<string, string> = {
   joined: "You're on the board as a guest. Post a game, or take one below.",
@@ -31,7 +33,7 @@ const problems: Record<string, string> = {
   venue: "Pick one of the listed venues.",
   kind: "Choose a match or a practice.",
   note: `Keep the note to ${NOTE_MAX} characters.`,
-  gone: "That game isn't open any more: someone took it, or it was withdrawn.",
+  gone: "That game isn't open any more: someone took it, it was withdrawn, or its time has passed.",
 };
 // only the messages above, whatever the query string says
 const pick = (messages: Record<string, string>, key: string | null) =>
@@ -186,16 +188,65 @@ const problem = pick(problems, Astro.url.searchParams.get("problem"));
         )
       }
     </section>
+
+    <section class="board" id="recent-games" aria-labelledby="recent-heading">
+      <h2 id="recent-heading">Recently</h2>
+      <p class="muted board-lede">Games from the last {KEPT_DAYS / 7} weeks whose time has passed.</p>
+      {
+        recent.length === 0 ? (
+          <p class="empty">Nothing in the last {KEPT_DAYS / 7} weeks.</p>
+        ) : (
+          <ul class="games">
+            {recent.map((g) => (
+              <li class="game game-past">
+                <p class="game-when">
+                  <time datetime={g.startsAt}>{formatWhen(g.startsAt)}</time>
+                </p>
+                <p class="game-where">{venueLabel(g.venue)}</p>
+                <p class="game-who">
+                  {g.status === "accepted" ? (
+                    <>
+                      <PlayerName id={g.hostId} name={g.hostName} username={g.hostUsername} />
+                      {" played "}
+                      <PlayerName id={g.guestId ?? ""} name={g.guestName ?? ""} username={g.guestUsername} />
+                      {` · ${kinds[g.kind]}`}
+                    </>
+                  ) : (
+                    <>
+                      {kinds[g.kind]} · posted by <PlayerName id={g.hostId} name={g.hostName} username={g.hostUsername} />
+                      {" · nobody took it"}
+                    </>
+                  )}
+                </p>
+                {g.note && <p class="game-note">{g.note}</p>}
+                {g.status === "accepted" && (player?.id === g.hostId || player?.id === g.guestId) && (
+                  <div class="actions">
+                    <a
+                      class="button button-quiet"
+                      href={`/games/${g.id}`}
+                      aria-label={`Messages with ${player.id === g.hostId ? g.guestName : g.hostName} about ${formatWhen(g.startsAt)}`}
+                    >
+                      Messages
+                    </a>
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+        )
+      }
+    </section>
     <p class="visually-hidden" aria-live="polite" data-live-status></p>
   </main>
 
   <script is:inline>
     // The board stays live: when anyone posts, takes or withdraws a game, the
     // server says so on /live/board, and this page fetches itself again and
-    // swaps in the fresh lists. After a dropped connection it catches up once it
-    // reconnects. Without JavaScript the board still works, after a reload.
+    // swaps in whichever lists changed, leaving the rest (and focus in them)
+    // alone. window.live (src/components/LiveScript.astro) keeps the stream
+    // up and catches the page up after any gap. Without JavaScript the board
+    // still works, after a reload.
     (() => {
-      if (!("EventSource" in window)) return;
       const status = document.querySelector("[data-live-status]");
       let busy = false;
       let again = false;
@@ -208,12 +259,9 @@ const problem = pick(problems, Astro.url.searchParams.get("problem"));
         try {
           const res = await fetch(location.pathname, { headers: { accept: "text/html" } });
           const fresh = new DOMParser().parseFromString(await res.text(), "text/html");
-          for (const id of ["open-games", "games-on"]) {
-            const next = fresh.getElementById(id);
-            const current = document.getElementById(id);
-            if (next && current) current.replaceWith(next);
+          if (window.swap(fresh, ["open-games", "games-on", "recent-games"]) && status) {
+            status.textContent = "The board just changed.";
           }
-          if (status) status.textContent = "The board just changed.";
         } catch {
           // the next change, or a reload, catches up
         } finally {
@@ -224,13 +272,7 @@ const problem = pick(problems, Astro.url.searchParams.get("problem"));
           }
         }
       };
-      const source = new EventSource("/live/board");
-      let opened = false;
-      source.addEventListener("change", refresh);
-      source.addEventListener("open", () => {
-        if (opened) refresh();
-        opened = true;
-      });
+      window.live?.("/live/board", refresh);
     })();
   </script>
 </Base>
