@@ -1,59 +1,37 @@
 # Find a game
 
-Find a game is a board for people who play table tennis at ACT clubs. You post a time and a venue, another member takes you up on it, and you both turn up. It's unofficial: Table Tennis ACT doesn't run it, and it doesn't replace anything Table Tennis ACT runs.
+Find a game is a board for people who play table tennis at ACT clubs. You post a time and a venue, another member takes you up on it, and you both turn up. It's unofficial: Table Tennis ACT doesn't run it.
 
 ## What good means here
 
-A good version of this app gets two club members onto a table with as little effort as possible, and helps them find the right opponent, without exposing more of anyone than the club already knows. For me that comes down to four things.
+A club already has somewhere to ask "anyone free for a hit Thursday?": the group chat. There the question scrolls away, three people answer it, and nobody is sure who's playing. A good board fixes exactly that. An offer is one thing on the board, the first to accept it gets it, and every open board shows it taken within a second. That's why the app is multi-user and live: an offer has to be claimed once, in front of everyone who might want it.
 
-**Trying it takes one field.** A guest gives the name people call them at the club, and the board marks them as a guest. Making an account adds a username and a password, so you can sign in from any device and keep what you've posted. There's no email address, which also means there's no password reset by email.
+Everything else serves getting two people onto a table:
 
-**Games are agreed in the open, and live.** Every offer goes on the one board, where anyone can see who's playing where and when, and a change reaches every open board within about a second, no reload needed. Anything waiting on you arrives the same way: an invitation or a match report reaches you wherever you are in the app, and your answer reaches whoever is waiting, for the reasons in [decision record 2](https://github.com/comp4020-agentic-coding-studio/comp4020-final-wuyimin362-sudo/blob/main/docs/adr/0002-what-reaches-people-live.md). Once someone takes a game it's theirs, and two people can't both take it: the first to accept gets it, for the reasons in [decision record 1](https://github.com/comp4020-agentic-coding-studio/comp4020-final-wuyimin362-sudo/blob/main/docs/adr/0001-first-to-accept-takes-the-game.md).
-
-**You only meet at public venues.** The venue list is the venues Table Tennis ACT lists, plus a few NSW clubs within reach of Canberra. Nobody has to post a home address, and the app never stores where you are.
-
-**It sits beside the club, not on top of it.** Table Tennis ACT already rates players through Ratings Central, runs Pennant, and takes entries for its events. The board fills the gaps between those: who's free for a hit on Thursday night, and who plays the style you want to practise against?
-
-The look borrows Apple's web style (system type, white cards, one blue for anything you can press) because the board gets checked on a phone between sessions, and it should be calm and quick to read.
+- **Trying it takes one field.** A guest gives the name people call them at the club. An account adds a username and a password, never an email.
+- **Choosing an opponent is possible, not required.** The board is for whoever's free; a member can instead find players by venue, style or a club rating close to their own, and invite one directly.
+- **Nothing about you leaves the club's pages.** Your location stays in your browser, profiles are for members, and the server's log records who did what by an id, never a name or anything you wrote.
 
 ## What I read
 
-- Clay Shirky, [Situated Software](https://gwern.net/doc/technology/2004-03-30-shirky-situatedsoftware) (2004): software built for one group can lean on the trust that group already has. That's why a name is enough to try the board: club members already know each other.
-- Robin Sloan, [An app can be a home-cooked meal](https://www.robinsloan.com/notes/home-cooked-app/) (2020): an app made for his family of four only had to be good for them. Email verification, password resets and discovery are what general-purpose apps need, and a club-sized board can leave them out.
-- Maggie Appleton, [Home-Cooked Software and Barefoot Developers](https://maggieappleton.com/home-cooked-software) (2024): the case for people inside a community building small tools for it. I play, and this is for the people I play with.
-- Aral Balkan, [What is the Small Web?](https://ar.al/2020/08/07/what-is-the-small-web/) (2020): small, personal, and tracking no one. The board stores a name and the games; members add a username, a hashed password and whatever they choose to put on their profile, and nothing else.
-- Yancey Strickler, [The Dark Forest Theory of the Internet](https://www.ystrickler.com/the-dark-forest-theory-of-the-internet/) (2019): people leave big public platforms for smaller spaces where they know each other. A club board is one of those, and should stay that way.
-- Table Tennis ACT's pages on [Ratings Central](https://www.tabletennisact.org.au/about/ratingscentral), [etiquette](https://www.tabletennisact.org.au/information-for-new-players-and-non-members/table-tennis-etiquette) and [clubs and venues](https://www.tabletennisact.org.au/venues-and-times) told me what the club already does, and so what to leave alone.
+- Clay Shirky, [Situated Software](https://gwern.net/doc/technology/2004-03-30-shirky-situatedsoftware) (2004): software for one group can lean on the trust that group already has. So a name is enough to take a game. Trust doesn't settle a disputed score, though, which is why a result counts only once the opponent confirms it.
+- Robin Sloan, [An app can be a home-cooked meal](https://www.robinsloan.com/notes/home-cooked-app/) (2020): an app for a few people only has to be good for them, so a club board can skip email, password resets and feeds.
+- Table Tennis ACT's pages on [Ratings Central](https://www.tabletennisact.org.au/about/ratingscentral) and [clubs and venues](https://www.tabletennisact.org.au/venues-and-times) told me what the club already runs, so the board lists only its venues, links to its official rating, and takes no entries.
 
-## What's here, and the lines it won't cross
+## What it won't do
 
-The first version cut my original idea down to the board. The rest of it is back now, each part with a limit:
-
-- **Profiles**: a photo, blade and rubbers, grip, style, usual venues, and a link to your Ratings Central rating. Only signed-in members can see them.
-- **Finding**: anyone can browse the venues and sort them by distance, worked out in their own browser so their location never reaches the server. Members find players who share their venues, or who play the style they want to practise against.
-- **Results**: a match counts toward the unofficial club rating and both players' records only once the opponent confirms it. Ratings Central keeps the official number.
-- **Opponents' views**: after a confirmed match each player can score the other's serve, receive, forehand, backhand, footwork and tactics from 1 to 5. The hexagon appears only once three different opponents have reviewed, so no single opinion stands for anyone. The club's etiquette asks players to respect their opponents, and this is how the app holds to it.
-- **Invitations**: invite a member from their profile. It stays off the board until they accept, and every game with two players has a short thread only those two can read.
-- **Events**: Table Tennis ACT's events, each linking to its own entry page. Members can say they're going or looking for a doubles partner; the app takes no entries.
-
-Still not building: email collection, location tracking, a general chat, or entries to official competitions.
+No general chat: a game's two players get a thread, nobody else. No more than two players a game, no location tracking, no official entries. A game whose time has passed stays on the board for two weeks, then drops off the list. The app's club rating is unofficial and says so.
 
 ## Enforced and judged
 
-Checked by `spec/` on every push:
+Checked by `spec/` on every push, with the file that holds each:
 
-- a stranger can join with just a name, post a game, and find it when they come back; another member can take it, and the host sees who (`spec/alive.test.ts`)
-- a member who signs up, logs out and logs in from another browser is the same person, and logging out ends the session on the server; a taken username and a wrong password are turned away; five wrong passwords lock an account for a minute; a guest who makes an account keeps their games (`spec/accounts.test.ts`)
-- a member's profile, photo included, shows to other members and to no one else, and a file that isn't a real image is refused (`spec/profiles.test.ts`)
-- every venue the board offers is listed for anyone; the venues page's script has no way to send a location anywhere; members find members who share their venues or play a given style, and non-members see none of it (`spec/discovery.test.ts`)
-- a score reaches the club rating and anyone's record only once the opponent confirms it; a disputed score never counts; nobody can confirm their own report or a match they weren't in; a score no match could end on is turned away (`spec/matches.test.ts`)
-- only the opponent in a confirmed match can review a player, once per match, with scores from 1 to 5, and the hexagon appears only after three different opponents have reviewed (`spec/reviews.test.ts`)
-- a direct invitation stays off the board until the invitee, and only the invitee, accepts it; a declined one never appears; a game's messages are readable and writable by its two players and nobody else (`spec/invites.test.ts`)
-- every event links to Table Tennis ACT's own page and the events page asks for nothing an entry would need; who's going, or looking for a partner, shows to members only (`spec/events.test.ts`)
-- every open board hears within a second that a game was posted or taken, a game's other player hears of a new message within a second while nobody else can listen, and when two people accept the same game at once exactly one gets it (`spec/realtime.test.ts`)
-- a member hears within a second of an invitation or a match report waiting on them, and of the answer to one they sent, on a stream nobody else can open (`spec/realtime.test.ts`)
-- this README is published at `/readme/` (`spec/invariants.test.ts`)
+- one field to join, and a guest's games survive making an account (`accounts`)
+- an offer is taken once: two accepts at the same moment, one winner (`realtime`)
+- every open page shows another person's change within a second, and reconnects if the server drops it (`realtime`, `live-everywhere`, `robustness`)
+- a game is still there the next day, and for two weeks after its time (`alive`, `history`)
+- profiles, reviews and event interest only for members; a game's thread only for its two players (`profiles`, `invites`, `events`)
+- a score counts only once confirmed; reviews only from a real opponent, shown after three (`matches`, `reviews`)
+- the venues page can't send a location, and no log line holds a name or what anyone wrote (`discovery`, `logging`)
 
-Enforced in the code, with a check still to write: games can only be posted at listed venues, up to eight weeks ahead.
-
-Judged rather than tested: whether posting really takes under a minute on a phone, and whether the board feels like the club's own noticeboard rather than a social network. I'll judge those by watching club-mates use it, and by asking my pod at the crit.
+Judged, not tested: whether posting takes under a minute on a phone, and whether the board reads as the club's noticeboard rather than a social network. I'll judge both by watching club-mates use it.
