@@ -2,15 +2,19 @@
 // Every page's frame: the landmarks, the app's name, who's signed in, and the
 // note that this is not the club's own site.
 import "../styles.css";
+import LiveScript from "../components/LiveScript.astro";
 import { invitationsFor } from "../lib/games";
 import { waitingFor } from "../lib/matches";
 import { currentPlayer, isGuest } from "../lib/players";
 
 interface Props {
   title: string;
+  // a page that must have no way to send anything, like the venues page, which
+  // asks the browser where you are: it leaves out the member's live stream
+  quiet?: boolean;
 }
 
-const { title } = Astro.props;
+const { title, quiet = false } = Astro.props;
 const path = Astro.url.pathname;
 const player = currentPlayer(Astro.cookies);
 // reports waiting for a member to confirm, flagged in the header
@@ -103,24 +107,28 @@ const invited = player && !isGuest(player) ? invitationsFor(player.id).length : 
         </div>
       </div>
     </header>
+    {/* before the page itself, whose scripts use what it defines */}
+    <LiveScript formsOnly={quiet} />
     <slot />
     <footer class="site-footer">
       <p>An unofficial board for ACT table tennis club members. It isn't run by the club.</p>
     </footer>
     {
-      player && !isGuest(player) && (
+      player && !isGuest(player) && !quiet && (
         <>
           <p class="visually-hidden" aria-live="polite" data-live-me-status></p>
           <script is:inline>
             // A member's own changes stay live on every page: an invitation or
-            // a match report waiting on them, or the answer to one they sent,
-            // arrives on their own stream, and the page fetches itself again
-            // to take the header's fresh counts and swap in any list marked
-            // data-live-area. Forms are left alone, so nothing half-typed is
-            // lost. Without JavaScript the counts and lists catch up on the
+            // a match report waiting on them, the answer to one they sent, and
+            // anything members share (who's going to an event, a profile, a
+            // review) arrive on their own stream, and the page fetches itself
+            // again, filters and all, to take the header's fresh counts and
+            // swap in any part marked data-live-area. Only a part that changed
+            // is swapped, so focus stays where it was and a screen reader hears
+            // of real changes only. Forms are left alone, so nothing half-typed
+            // is lost. Without JavaScript the counts and lists catch up on the
             // next page load.
             (() => {
-              if (!("EventSource" in window)) return;
               const status = document.querySelector("[data-live-me-status]");
               let busy = false;
               let again = false;
@@ -131,19 +139,21 @@ const invited = player && !isGuest(player) ? invitationsFor(player.id).length : 
                 }
                 busy = true;
                 try {
-                  const res = await fetch(location.pathname, { headers: { accept: "text/html" } });
+                  const res = await fetch(location.pathname + location.search, { headers: { accept: "text/html" } });
                   if (!res.ok) return;
                   const fresh = new DOMParser().parseFromString(await res.text(), "text/html");
+                  let changed = false;
                   // the links stay put, so focus stays on them; only their counts change
                   for (const link of document.querySelectorAll("[data-live-count]")) {
                     const next = fresh.querySelector('[data-live-count="' + link.dataset.liveCount + '"]');
-                    if (next) link.innerHTML = next.innerHTML;
+                    if (next && next.innerHTML !== link.innerHTML) {
+                      link.innerHTML = next.innerHTML;
+                      changed = true;
+                    }
                   }
-                  for (const area of document.querySelectorAll("[data-live-area]")) {
-                    const next = fresh.getElementById(area.id);
-                    if (next) area.replaceWith(next);
-                  }
-                  if (status) status.textContent = "Your invites or matches just changed.";
+                  const areas = [...document.querySelectorAll("[data-live-area]")].map((area) => area.id);
+                  if (window.swap(fresh, areas)) changed = true;
+                  if (changed && status) status.textContent = "This page just changed.";
                 } catch {
                   // the next change, or a reload, catches up
                 } finally {
@@ -154,13 +164,7 @@ const invited = player && !isGuest(player) ? invitationsFor(player.id).length : 
                   }
                 }
               };
-              const source = new EventSource("/live/me");
-              let opened = false;
-              source.addEventListener("change", refresh);
-              source.addEventListener("open", () => {
-                if (opened) refresh();
-                opened = true;
-              });
+              window.live("/live/me", refresh);
             })();
           </script>
         </>

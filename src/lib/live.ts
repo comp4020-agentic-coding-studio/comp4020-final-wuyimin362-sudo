@@ -9,9 +9,12 @@ import { EventEmitter } from "node:events";
 const bus = new EventEmitter();
 bus.setMaxListeners(0);
 
-// The board, one game, or one member. A member's own topic carries what waits
-// on them or answers them: an invitation, a match report.
-export type Topic = "board" | `game:${number}` | `player:${string}`;
+// The board, one game, one member, or what members share. A member's own topic
+// carries what waits on them or answers them: an invitation, a match report.
+// "members" carries what only members can see of each other (who's going to
+// an event, profiles, reviews, confirmed matches, who's in the club), so it's
+// heard only on a member's own stream (src/pages/live/me.ts).
+export type Topic = "board" | "members" | `game:${number}` | `player:${string}`;
 
 export function publish(...topics: Topic[]): void {
   for (const topic of topics) bus.emit(topic);

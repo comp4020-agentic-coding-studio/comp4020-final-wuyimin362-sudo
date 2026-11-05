@@ -7,10 +7,11 @@ rules, the README changes first, then the rule.
 ## What the app must never do
 
 - Ask for an email address, or make anyone sign up just to try the board: a
-  guest joins with a name.
+  guest joins with a name, which has to have something in it anyone could see.
 - Send a visitor's location anywhere. Distance to venues is worked out in the
   browser by an inline script with no fetch, beacon or socket, and no page
-  loads an external script.
+  loads an external script. The venues page is quiet for everyone, members
+  included: it carries no live stream, so it shows nothing that changes.
 - Offer a venue that isn't in `src/lib/venues.ts`, or a free-text address
   field. A venue change cites the page it came from.
 - Count a match score that both players haven't confirmed, or present the
@@ -20,7 +21,9 @@ rules, the README changes first, then the rule.
   than once per match, or show a member's hexagon or review comments before
   three different opponents have reviewed them.
 - Add a general chat. Messages live only inside a game, and only its two
-  players can read or write them.
+  players can read or write them. A game has two players, never more, without
+  a new decision record (`docs/adr/0004-who-may-see-and-change-what.md`, which
+  also sets out who may see and change everything else).
 - Show a direct invitation on the public board before it's accepted, or let
   anyone but the invitee accept or decline it.
 - Present itself as Table Tennis ACT's, or take entries for official
@@ -36,6 +39,10 @@ rules, the README changes first, then the rule.
 
 - Passwords are stored only as scrypt hashes (`src/lib/passwords.ts`). They
   are never logged, never echoed back, and never stored anywhere else.
+- Every action is logged by `src/middleware.ts`, one line each, naming who by
+  player id and kind (guest or member). A log line never holds a name, a
+  username, a token, a cookie, an IP address, or anything anyone wrote, and no
+  route logs on its own. `spec/logging.test.ts` holds both.
 - Session tokens live only in the cookie. The database keeps their SHA-256,
   and logging out deletes the session row.
 - A guest who makes an account keeps their player row and their games.
@@ -67,10 +74,24 @@ rules, the README changes first, then the rule.
 - A change that waits on a member or answers one (an invitation, a match report,
   and their answers) also publishes each member's own topic, and every member's
   page listens on their own stream, which the cookie picks and nobody else can
-  open (`docs/adr/0002-what-reaches-people-live.md`). Event interest, reviews
-  and profiles wait for a reload without a new decision record.
+  open (`docs/adr/0002-what-reaches-people-live.md`).
+- Every page that shows something another person can change takes the change
+  live (`docs/adr/0003-everything-shown-is-live.md`). A change to what only
+  members see of each other (event interest, profiles and photos, reviews,
+  confirmed matches, new members) publishes `members`, which only a member's own
+  stream carries. A new page that shows changing data marks it `data-live-area`
+  and gets a check in `spec/live-everywhere.test.ts`. The two exceptions are in
+  the record: the venues page, which shows nothing that changes, and the player
+  card in a game's conversation, which isn't swapped while someone has it open.
+- A page listens only through `window.live` and swaps only through
+  `window.swap` (`src/components/LiveScript.astro`), so every live page lets go
+  of its streams when it's left, reconnects when the server refuses one, and
+  says so while it does. Every form sends once: a second press does nothing.
+  `spec/robustness.test.ts` holds this.
 - The club rating is replayed from confirmed matches every time it's shown.
-  Never store a rating that could drift from the record.
+  Never store a rating that could drift from the record. It is there to help
+  members find an even game, on the players page; a member without a confirmed
+  match has no rating, and is never ranked as if they had one.
 - Schema changes go through `pnpm db:generate` and a committed migration. An
   applied migration is never edited. If drizzle-kit asks whether a column was
   renamed, split the change into an add and a drop.

@@ -23,14 +23,20 @@ if (!game) Astro.response.status = 403;
 const thread = game ? messagesOf(id) : [];
 const problem =
   Astro.url.searchParams.get("problem") === "body" ? `Write something, up to ${MESSAGE_MAX} characters.` : undefined;
+// once its time has passed, a game is a record of what happened
+const over = game !== undefined && game.startsAt <= canberraNow();
 const standing = game
   ? game.status === "accepted"
-    ? "Agreed"
+    ? over
+      ? "Played"
+      : "Agreed"
     : game.status === "declined"
       ? "Declined"
       : game.status === "withdrawn"
         ? "Withdrawn"
-        : "Waiting for an answer"
+        : over
+          ? "Never answered"
+          : "Waiting for an answer"
   : "";
 
 // the other player, however they came to the game
@@ -244,7 +250,7 @@ const lastId = thread.at(-1)?.id;
         if (location.hash === "#latest") box.focus();
       }
 
-      if (!stream || !("EventSource" in window)) return;
+      if (!stream) return;
       let busy = false;
       let again = false;
       const refresh = async () => {
@@ -258,17 +264,14 @@ const lastId = thread.at(-1)?.id;
           const before = document.getElementById("thread-area")?.dataset.last;
           const res = await fetch(location.pathname, { headers: { accept: "text/html" } });
           const fresh = new DOMParser().parseFromString(await res.text(), "text/html");
-          for (const id of ["thread-area", "game-status"]) {
-            const next = fresh.getElementById(id);
-            const current = document.getElementById(id);
-            if (next && current) current.replaceWith(next);
+          if (window.swap(fresh, ["thread-area", "game-status"]) && status) {
+            status.textContent = "The conversation just changed.";
           }
           const after = document.getElementById("thread-area")?.dataset.last;
           if (after !== before) {
             if (following) toBottom();
             else if (below) below.hidden = false;
           }
-          if (status) status.textContent = "The conversation just changed.";
         } catch {
           // the next change, or a reload, catches up
         } finally {
@@ -279,13 +282,7 @@ const lastId = thread.at(-1)?.id;
           }
         }
       };
-      const source = new EventSource(stream);
-      let opened = false;
-      source.addEventListener("change", refresh);
-      source.addEventListener("open", () => {
-        if (opened) refresh();
-        opened = true;
-      });
+      window.live?.(stream, refresh);
     })();
   </script>
 </Base>

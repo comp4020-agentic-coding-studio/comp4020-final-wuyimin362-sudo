@@ -1,4 +1,4 @@
-import { JSDOM } from "jsdom";
+import { JSDOM, VirtualConsole } from "jsdom";
 import { expect, inject } from "vitest";
 
 // What the checks in spec/ share: a browser reduced to the cookie it holds, and
@@ -103,6 +103,149 @@ export function listen(path: string, who: Visitor) {
       });
     },
     close: () => controller.abort(),
+  };
+}
+
+// Opens a page the way a visitor's browser holds it open: its own scripts run,
+// with this visitor's cookie on every request they make and on the live
+// streams they open, so a check can watch what the page itself shows when
+// someone else changes something. It hands the page over once every stream the
+// page opened is connected, so the clock a check starts after it is fair.
+// `shows` resolves with how many milliseconds the text took to appear, or
+// undefined if it didn't in time.
+//
+// Its EventSource behaves as Chrome's does where the pages depend on it: a
+// stream that ends is reopened after two seconds, the server's retry delay,
+// but one the server refuses (anything but a 200, as a proxy gives while a
+// machine restarts) fires "error" and is closed for good, so only the page's
+// own code can bring it back. `dropStreams` ends every open stream, and
+// `refuseReconnects` makes that many reopenings fail first.
+export async function openPage(path: string, who: Visitor, options: { refuseReconnects?: number } = {}) {
+  const url = new URL(path, baseUrl);
+  const res = await fetch(url, { headers: cookieHeader(who) });
+  expect(res.status, `GET ${path}`).toBe(200);
+  const errors: string[] = [];
+  type Stream = { readyState: number; path: string; drop(): void; close(): void };
+  const streams: Stream[] = [];
+  let refusals = options.refuseReconnects ?? 0;
+  // one promise per stream the page opens, settled when it's connected or refused
+  const connecting: Promise<void>[] = [];
+  const virtualConsole = new VirtualConsole();
+  virtualConsole.on("jsdomError", (e) => errors.push(e.message));
+  const dom = new JSDOM(await res.text(), {
+    url: url.href,
+    runScripts: "dangerously",
+    virtualConsole,
+    beforeParse(window) {
+      // the page's requests go out as this visitor
+      window.fetch = (input: RequestInfo | URL, init?: RequestInit) =>
+        fetch(new URL(String(input), url), { ...init, headers: { ...init?.headers, ...cookieHeader(who) } });
+      window.EventSource = class {
+        static CONNECTING = 0;
+        static OPEN = 1;
+        static CLOSED = 2;
+        readyState = 0;
+        onerror: ((e: Event) => void) | null = null;
+        #handlers: Record<string, ((e: Event) => void)[]> = {};
+        #controller = new AbortController();
+        #url: URL;
+        constructor(stream: string) {
+          this.#url = new URL(stream, url);
+          streams.push(this);
+          let connected = () => {};
+          connecting.push(new Promise<void>((resolve) => (connected = resolve)));
+          void this.#connect(connected, false);
+        }
+        // the address the page asked to listen on
+        get path() {
+          return this.#url.pathname;
+        }
+        async #connect(connected: () => void, reopening: boolean) {
+          this.#controller = new AbortController();
+          try {
+            const refused = reopening && refusals > 0;
+            if (refused) refusals -= 1;
+            const r = refused
+              ? new Response("Bad gateway", { status: 502 })
+              : await fetch(this.#url, {
+                  headers: { accept: "text/event-stream", ...cookieHeader(who) },
+                  signal: this.#controller.signal,
+                });
+            connected();
+            if (this.readyState === 2) return;
+            if (r.status !== 200 || !r.body) {
+              // refused: Chrome gives up on this stream for good
+              this.readyState = 2;
+              this.#emit("error");
+              return;
+            }
+            this.readyState = 1;
+            this.#emit("open");
+            const reader = r.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = "";
+            for (;;) {
+              const { value, done } = await reader.read();
+              if (done) break;
+              buffer += decoder.decode(value, { stream: true });
+              for (let end = buffer.indexOf("\n\n"); end >= 0; end = buffer.indexOf("\n\n")) {
+                if (/^event: change$/m.test(buffer.slice(0, end))) this.#emit("change");
+                buffer = buffer.slice(end + 2);
+              }
+            }
+          } catch {
+            connected();
+          }
+          // the stream ended without being closed: Chrome reports it and reopens it
+          if (this.readyState === 2) return;
+          this.readyState = 0;
+          this.#emit("error");
+          setTimeout(() => {
+            if (this.readyState !== 2) void this.#connect(() => {}, true);
+          }, 2000);
+        }
+        #emit(type: string) {
+          const event = new window.Event(type);
+          if (type === "error") this.onerror?.(event);
+          for (const handler of this.#handlers[type] ?? []) handler(event);
+        }
+        addEventListener(type: string, handler: (e: Event) => void) {
+          (this.#handlers[type] ??= []).push(handler);
+        }
+        drop() {
+          this.#controller.abort();
+        }
+        close() {
+          this.readyState = 2;
+          this.#controller.abort();
+        }
+      } as unknown as typeof window.EventSource;
+    },
+  });
+  // the page's scripts have run; wait for the streams they opened, but not forever
+  await Promise.race([Promise.all(connecting), new Promise((resolve) => setTimeout(resolve, 5000))]);
+  const text = () => dom.window.document.body.textContent ?? "";
+  return {
+    document: dom.window.document,
+    errors,
+    text,
+    async shows(wanted: string, withinMs: number): Promise<number | undefined> {
+      const started = Date.now();
+      while (Date.now() - started <= withinMs) {
+        if (text().includes(wanted)) return Date.now() - started;
+        await new Promise((resolve) => setTimeout(resolve, 20));
+      }
+    },
+    openStreams: () => streams.filter((s) => s.readyState !== 2).length,
+    // how many open streams the page holds to this address
+    streamsTo: (path: string) => streams.filter((s) => s.readyState !== 2 && s.path === path).length,
+    dropStreams() {
+      for (const stream of streams) if (stream.readyState !== 2) stream.drop();
+    },
+    close() {
+      for (const stream of streams) stream.close();
+      dom.window.close();
+    },
   };
 }
 

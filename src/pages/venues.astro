@@ -1,20 +1,20 @@
 ---
-// Every venue on the board, for anyone: where it is, when it's open, and how
-// many open games are there. A visitor can sort the list by distance, which is
-// worked out in their browser; the script has no way to send anything, and
-// spec/discovery.test.ts holds it to that.
+// Every venue on the board, for anyone: where it is and when it's open. A
+// visitor can sort the list by distance, which is worked out in their browser;
+// the page has no way to send anything, a member's live stream included, and
+// spec/discovery.test.ts holds it to that. So nothing on it can be live, and it
+// shows nothing other people change: open games are on the board, which is.
 import Base from "../layouts/Base.astro";
-import { upcomingGames } from "../lib/games";
 import { mapUrl, states, venues } from "../lib/venues";
-
-const openAt = (id: string) => upcomingGames().filter((g) => g.status === "open" && g.venue === id).length;
 ---
 
-<Base title="Venues · Find a game">
+<Base title="Venues · Find a game" quiet>
   <main class="wrap">
     <section class="hero hero-small">
       <h1>Venues.</h1>
-      <p class="lede">Where club members play. Check times with the venue before you go.</p>
+      <p class="lede">
+        Where club members play. Check times with the venue before you go, and find open games on the <a href="/">board</a>.
+      </p>
     </section>
 
     <div class="distance-tools">
@@ -35,7 +35,6 @@ const openAt = (id: string) => upcomingGames().filter((g) => g.status === "open"
                   <p class="game-where">{v.address}</p>
                   <p class="game-who">{v.sessions}</p>
                   <p class="game-who">
-                    {openAt(v.id) === 1 ? "1 open game" : `${openAt(v.id)} open games`} ·{" "}
                     <a href={mapUrl(v)}>Map</a>
                     <span data-distance />
                   </p>

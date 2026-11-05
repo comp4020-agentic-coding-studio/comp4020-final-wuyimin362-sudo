@@ -1,5 +1,5 @@
 import type { APIRoute } from "astro";
-import { postGame } from "../../lib/games";
+import { postGame, refusedOffer } from "../../lib/games";
 import { currentPlayer } from "../../lib/players";
 import { wallClockFrom } from "../../lib/time";
 
@@ -8,11 +8,7 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
   if (!player) return redirect("/?problem=join", 303);
   const form = await request.formData();
   const field = (name: string) => String(form.get(name) ?? "");
-  const problem = postGame(player, {
-    startsAt: wallClockFrom(field),
-    venue: field("venue"),
-    kind: field("kind"),
-    note: field("note"),
-  });
-  return redirect(problem ? `/?problem=${problem}` : "/?done=posted", 303);
+  const offer = { startsAt: wallClockFrom(field), venue: field("venue"), kind: field("kind"), note: field("note") };
+  const problem = postGame(player, offer);
+  return redirect(problem ? `/?${refusedOffer(problem, offer)}` : "/?done=posted", 303);
 };
