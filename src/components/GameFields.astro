@@ -3,11 +3,17 @@
 // note. Shared by posting a game on the board and inviting someone directly.
 // The day and time are lists rather than the browser's own picker, which draws
 // itself in the browser's language; the server joins them back into one
-// Canberra wall-clock time (src/lib/time.ts).
-import { HORIZON_DAYS, kinds, NOTE_MAX } from "../lib/games";
+// Canberra wall-clock time (src/lib/time.ts). After the server refuses an
+// offer, the form comes back as it was sent (refusedOffer in src/lib/games.ts).
+import { HORIZON_DAYS, kinds, NOTE_MAX, type OfferValues } from "../lib/games";
 import { daysAhead, formatClock, formatDay, quarterHours } from "../lib/time";
 import { states, venueLabel, venues } from "../lib/venues";
 
+interface Props {
+  values?: OfferValues;
+}
+
+const { values = {} } = Astro.props;
 const days = daysAhead(HORIZON_DAYS);
 ---
 
@@ -17,14 +23,14 @@ const days = daysAhead(HORIZON_DAYS);
     <span>Day</span>
     <select name="startsDay" required>
       <option value="">Day…</option>
-      {days.map((day, i) => <option value={day}>{i === 0 ? `Today, ${formatDay(day)}` : i === 1 ? `Tomorrow, ${formatDay(day)}` : formatDay(day)}</option>)}
+      {days.map((day, i) => <option value={day} selected={values.day === day}>{i === 0 ? `Today, ${formatDay(day)}` : i === 1 ? `Tomorrow, ${formatDay(day)}` : formatDay(day)}</option>)}
     </select>
   </label>
   <label class="field">
     <span>Time</span>
     <select name="startsTime" required>
       <option value="">Time…</option>
-      {quarterHours.map((time) => <option value={time}>{formatClock(time)}</option>)}
+      {quarterHours.map((time) => <option value={time} selected={values.time === time}>{formatClock(time)}</option>)}
     </select>
   </label>
 </fieldset>
@@ -38,7 +44,7 @@ const days = daysAhead(HORIZON_DAYS);
           {venues
             .filter((v) => v.state === state)
             .map((v) => (
-              <option value={v.id}>{venueLabel(v.id)}</option>
+              <option value={v.id} selected={values.venue === v.id}>{venueLabel(v.id)}</option>
             ))}
         </optgroup>
       ))
@@ -48,10 +54,10 @@ const days = daysAhead(HORIZON_DAYS);
 <label class="field">
   <span>What</span>
   <select name="kind">
-    {Object.entries(kinds).map(([value, label]) => <option value={value}>{label}</option>)}
+    {Object.entries(kinds).map(([value, label]) => <option value={value} selected={values.kind === value}>{label}</option>)}
   </select>
 </label>
 <label class="field">
   <span>Note <small>(optional)</small></span>
-  <input name="note" maxlength={NOTE_MAX} placeholder="Best of five? Happy to just rally." />
+  <input name="note" maxlength={NOTE_MAX} value={values.note ?? ""} placeholder="Best of five? Happy to just rally." />
 </label>

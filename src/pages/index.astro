@@ -6,7 +6,7 @@
 import GameFields from "../components/GameFields.astro";
 import PlayerName from "../components/PlayerName.astro";
 import Base from "../layouts/Base.astro";
-import { HORIZON_DAYS, KEPT_DAYS, kinds, NOTE_MAX, recentGames, upcomingGames } from "../lib/games";
+import { HORIZON_DAYS, KEPT_DAYS, kinds, NOTE_MAX, offerValues, recentGames, upcomingGames } from "../lib/games";
 import { currentPlayer, isGuest, NAME_MAX } from "../lib/players";
 import { formatWhen } from "../lib/time";
 import { venueLabel } from "../lib/venues";
@@ -71,7 +71,7 @@ const problem = pick(problems, Astro.url.searchParams.get("problem"));
             </p>
           </div>
           <form method="post" action="/games" class="post-form">
-            <GameFields />
+            <GameFields values={offerValues(Astro.url.searchParams)} />
             <button class="button" type="submit">
               Post game
             </button>

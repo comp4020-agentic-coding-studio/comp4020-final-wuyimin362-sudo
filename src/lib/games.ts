@@ -22,6 +22,26 @@ export type Problem = "time" | "venue" | "kind" | "note" | "gone" | "invitee";
 
 type Offer = { startsAt: string; venue: string; kind: string; note: string };
 
+// A refused offer goes back to its form with what was sent, so nobody types it
+// all again: the problem, then the fields, the time split back into the day and
+// time the form's lists show. The note is the sender's own text going back to
+// their own page; the log keeps only the problem (src/lib/log.ts).
+export function refusedOffer(problem: Problem, offer: Offer): string {
+  const [day = "", time = ""] = offer.startsAt.split("T");
+  const query = new URLSearchParams({ problem, day, time, venue: offer.venue, kind: offer.kind });
+  if (offer.note) query.set("note", offer.note.slice(0, NOTE_MAX));
+  return query.toString();
+}
+
+// What a form was sent with, from a refused offer's query, for GameFields.
+export type OfferValues = Partial<Record<"day" | "time" | "venue" | "kind" | "note", string>>;
+export const offerValues = (params: URLSearchParams): OfferValues =>
+  Object.fromEntries(
+    (["day", "time", "venue", "kind", "note"] as const)
+      .map((key) => [key, params.get(key)] as const)
+      .filter((entry): entry is readonly [(typeof entry)[0], string] => entry[1] !== null),
+  );
+
 const host = alias(players, "host");
 const guest = alias(players, "guest");
 const invited = alias(players, "invited");

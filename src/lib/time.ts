@@ -25,8 +25,13 @@ export function canberraNow(): string {
 // Wall-clock arithmetic in UTC, where no clock ever jumps.
 const asUtc = (wallClock: string): Date => new Date(`${wallClock}:00Z`);
 
+// A time that's on the calendar: Date quietly rolls 24:00 into the next day and
+// 31 November into 1 December, so the moment it parses to must read back as
+// exactly the same wall-clock string.
 export function isWallClock(s: string): boolean {
-  return WALL_CLOCK.test(s) && !Number.isNaN(asUtc(s).getTime());
+  if (!WALL_CLOCK.test(s)) return false;
+  const at = asUtc(s);
+  return !Number.isNaN(at.getTime()) && at.toISOString().slice(0, 16) === s;
 }
 
 export function addDays(wallClock: string, days: number): string {

@@ -1,7 +1,19 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { fetchAs, formWith, gameWith, live, member, postGame, submit, visit, type Visitor } from "./helpers.ts";
+import {
+  fetchAs,
+  formWith,
+  gameFields,
+  gameWith,
+  live,
+  member,
+  offerForm,
+  postGame,
+  submit,
+  visit,
+  type Visitor,
+} from "./helpers.ts";
 
 // Who did what, as the server logs it: one line per action, naming who by
 // their player id and whether they're a guest or a member, so whoever runs the
@@ -48,6 +60,12 @@ describe.skipIf(live || appOutput() === undefined)("who did what, in the server'
     const said = `Meet at the door ${crypto.randomUUID().slice(0, 8)}`;
     const thread = `/games/${gameId}`;
     expect((await submit(formWith(await visit(thread, guest.who), "body"), { body: said }, guest.who)).status).toBe(303);
+    // a refused offer goes back to its form with its note in the address, which
+    // the log must not keep
+    const refusedNote = `spec refused note ${crypto.randomUUID().slice(0, 8)}`;
+    const offer = offerForm(await visit("/", host.who));
+    const sent = await submit(offer, { ...gameFields(offer, refusedNote), startsAt: "2020-01-01T19:00" }, host.who);
+    expect(sent.headers.get("location"), "the refused offer didn't carry its note back").toContain("note=");
     expect((await fetchAs(thread, outsider.who)).status).toBe(403);
 
     // the lines this run added, once the last of them is there
@@ -71,6 +89,7 @@ describe.skipIf(live || appOutput() === undefined)("who did what, in the server'
     // passwords (all three carry the member's spec id), or session tokens
     const text = lines.join("\n");
     expect(text, "the log holds what someone wrote").not.toContain(said);
+    expect(text, "the log holds a refused offer's note").not.toContain(refusedNote.split(" ").pop());
     for (const m of [host, guest, outsider]) {
       const specId = m.name.split(" ").pop() ?? "";
       expect(specId).not.toBe("");

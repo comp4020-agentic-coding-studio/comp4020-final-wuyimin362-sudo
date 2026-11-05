@@ -6,7 +6,7 @@ import Avatar from "../../components/Avatar.astro";
 import GameFields from "../../components/GameFields.astro";
 import Hexagon from "../../components/Hexagon.astro";
 import Base from "../../layouts/Base.astro";
-import { kinds, upcomingGames } from "../../lib/games";
+import { kinds, offerValues, upcomingGames } from "../../lib/games";
 import { ratings, recordOf } from "../../lib/matches";
 import { currentPlayer, isGuest } from "../../lib/players";
 import { grips, profileOf, ratingsCentralUrl, styles } from "../../lib/profiles";
@@ -89,7 +89,7 @@ const aspectKeys = Object.keys(aspects) as Aspect[];
                 </p>
               )}
               <form method="post" action={`/players/${profile.id}/invite`} class="post-form">
-                <GameFields />
+                <GameFields values={offerValues(Astro.url.searchParams)} />
                 <button class="button" type="submit">
                   Send invitation
                 </button>
