@@ -1,5 +1,18 @@
 import { describe, expect, it } from "vitest";
-import { gameWith, join, live, member, openPage, postGame, stranger, visit } from "./helpers.ts";
+import {
+  baseUrl,
+  gameFields,
+  gameWith,
+  join,
+  live,
+  member,
+  offerForm,
+  openPage,
+  postGame,
+  stranger,
+  submit,
+  visit,
+} from "./helpers.ts";
 
 // What a page has to survive that it wasn't designed for: a button pressed
 // twice on a slow connection, a page left and come back to through the
@@ -68,6 +81,52 @@ describe.skipIf(live)("holding up", () => {
     );
     expect(notice?.hasAttribute("hidden"), "the page still says it's reconnecting").toBe(true);
     page.close();
+  });
+
+  it("turns away a body that isn't a form with a 4xx, on every route that takes one", async () => {
+    const origin = new URL(baseUrl).origin;
+    const routes = ["/join", "/games", "/signup", "/login", "/matches", "/profile", "/games/1/messages"];
+    for (const route of routes) {
+      const res = await fetch(new URL(route, baseUrl), {
+        method: "POST",
+        redirect: "manual",
+        headers: { origin, "content-type": "application/json" },
+        body: JSON.stringify({ name: "x" }),
+      });
+      expect(res.status, `POST ${route} with a JSON body`).toBeGreaterThanOrEqual(400);
+      expect(res.status, `POST ${route} with a JSON body`).toBeLessThan(500);
+    }
+  });
+
+  it("turns away a game at a date or time that doesn't exist, and keeps what was typed", async () => {
+    const host = await join(`Spec calendar ${crypto.randomUUID().slice(0, 8)}`);
+    const offer = offerForm(await visit("/", host));
+    // inside the eight weeks a game can be posted for, so only the calendar can refuse them
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const soon = new Date(Date.now() + 10 * 86_400_000);
+    const month = `${soon.getFullYear()}-${pad(soon.getMonth() + 1)}`;
+    const day = `${month}-${pad(soon.getDate())}`;
+    for (const startsAt of [`${month}-32T19:00`, `${day}T24:00`, `${day}T19:60`, `${day}T7:00`]) {
+      const res = await submit(offer, { ...gameFields(offer, "impossible"), startsAt }, host);
+      expect(res.headers.get("location"), `a game was posted at ${startsAt}`).toContain("problem=time");
+    }
+    // the day after the last of a short month, in the window whenever it runs
+    const end = new Date(soon.getFullYear(), soon.getMonth() + 1, 0).getDate();
+    if (end < 31) {
+      const startsAt = `${month}-${pad(end + 1)}T19:00`;
+      const res = await submit(offer, { ...gameFields(offer, "impossible"), startsAt }, host);
+      expect(res.headers.get("location"), `a game was posted at ${startsAt}`).toContain("problem=time");
+    }
+
+    // a refused post comes back with the form as it was sent, note included
+    const note = `spec kept ${crypto.randomUUID().slice(0, 8)}`;
+    const lastYear = `${soon.getFullYear() - 1}-01-01T19:00`;
+    const refused = await submit(offer, { ...gameFields(offer, note), startsAt: lastYear }, host);
+    const back = await visit(refused.headers.get("location") ?? "/", host);
+    const form = offerForm(back);
+    expect((form.querySelector('[name="note"]') as HTMLInputElement | null)?.value, "the note was lost").toBe(note);
+    const venue = (form.querySelector('select[name="venue"]') as HTMLSelectElement | null)?.value;
+    expect(venue, "the venue was lost").toBe(gameFields(offer, note).venue);
   });
 
   it("keeps a guest's games on the board after the guest's browser forgets them", async () => {
