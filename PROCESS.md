@@ -73,7 +73,7 @@ thing to change at scale.
 ## How I knew it was right
 
 Every feature began as a failing check that drives the app through its own
-forms, then went green; there are 55. They write data, so they run in CI's
+forms, then went green; there are 57. They write data, so they run in CI's
 throwaway container. Checks can't see a page drawn, so every interface change
 was also checked in headless Chrome at both marking viewports.
 

@@ -4,7 +4,7 @@ The practitioner literature on agentic coding has settled on one remedy for an
 agent's unreliability: automated pressure. Willison's red/green TDD has the
 agent write a failing test before the code that passes it; Böckeler's harness
 engineering adds "sensors" that feed back to the agent so it corrects itself
-before a person looks. I accept the remedy; my final project ended with 55 such
+before a person looks. I accept the remedy; my final project ended with 57 such
 checks. My position is that the literature stops one step short. A check suite
 written in the same session as the code it checks is a measure, not a verifier,
 and good practice needs a second layer that the author of the checks did not
