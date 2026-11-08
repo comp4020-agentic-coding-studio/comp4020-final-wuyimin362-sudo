@@ -1,11 +1,13 @@
 # Process overview
 
 This is the project as submitted, rewritten rather than added to. The work ran
-in Claude Code sessions on 6–7, 12–13 and 26–27 October. The agent did nearly
-all of the typing: code, checks, `CLAUDE.md`, decision records, and drafts of
-this file, the README and my reflections. Every commit it drafted from my
-answers says so. My part was the calls: what the app is for, what to cut,
-which option to take when the agent laid them out, and when to overrule it.
+in Claude Code sessions on 6–7, 12–13 and 26–27 October and 5 November. The
+agent did nearly all of the typing: code, checks, `CLAUDE.md`, decision
+records, and drafts of this file, the README, the research note and my
+reflections. Every commit it drafted says so. My part was the calls: what the
+app is for, what to cut, and which option to take when the agent laid them
+out, including once changing my own mind. In the last week I also handed the
+agent the finishing decisions, and the commits record which those were.
 
 ## From the brief to one claim
 
@@ -20,7 +22,7 @@ The rest came back one feature at a time, each with a limit
 
 A review two weeks before the deadline said the README still read as that
 wishlist, with multi-user and real-time as requirements met rather than the
-idea. I agreed. The rewrite
+idea. The rewrite
 ([`93219ae`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-wuyimin362-sudo/commit/93219ae))
 argues one thing: the club already asks "anyone free Thursday?" in a group
 chat, where the question scrolls away and three people answer. On the board an
@@ -31,8 +33,8 @@ point of the app rather than its cost.
 My reading, where it changed something: Shirky's situated software is why a
 name is enough to join, and also where I stop trusting the club. A disputed
 score isn't settled by trust, so a result waits for the opponent. Sloan's
-home-cooked app is why there is no email or password reset. I dropped two
-sources the README cited but no decision came from.
+home-cooked app is why there is no email or password reset. Two sources the
+README cited, but no decision came from, were dropped.
 
 ## The stack, and what it cost
 
@@ -113,7 +115,7 @@ header on desktop, the commit says so rather than claiming a fix
   streams, so the spec runs one file at a time
   ([`bc0997c`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-wuyimin362-sudo/commit/bc0997c)).
 - **Rules that already held.** Where a check covered a rule the code kept, it
-  couldn't land red, so I broke the rule once on purpose to see it fail
+  couldn't land red, so the rule was broken once on purpose to see it fail
   ([`b29333a`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-wuyimin362-sudo/commit/b29333a),
   [`41f1e1b`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-wuyimin362-sudo/commit/41f1e1b)).
 

@@ -64,9 +64,9 @@ reviewer started without my session's context and found that three presses of
 "Post game" created three games, that pages kept by the browser's back button
 held their live connections open, and that a refused stream was never retried.
 None of my checks could have caught these: each encoded the same assumptions
-as the code. Earlier, the one gap I found myself came the same way, by
-stepping outside the suite: re-reading as a member the page whose check read
-it only as a stranger, I found the location promise it guarded broken.
+as the code. An earlier gap surfaced the same way, from outside the suite:
+re-read as a member, the page whose check read it only as a stranger turned
+out to break the location promise that check guarded.
 
 The objection still bites in one place. The reviewer also produced a finding
 that would not reproduce, and some that did not matter.
